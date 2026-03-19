@@ -50,6 +50,7 @@ class AppState {
     var activeCenterTab: CenterTab = .preview
     var dirtyFiles: Set<URL> = []
     private var tabStateByProject: [URL: ProjectTabState] = [:]
+    private var terminalStateByProject: [URL: ProjectTerminalState] = [:]
 
     func markDirty(_ url: URL) { dirtyFiles.insert(url) }
     func markClean(_ url: URL) { dirtyFiles.remove(url) }
@@ -90,6 +91,23 @@ class AppState {
         if case .file(let active) = activeCenterTab, !openedFileURLs.contains(active) {
             activeCenterTab = .file(url)
         }
+    }
+
+    func terminalPreset(for url: URL) -> AgentPreset {
+        terminalStateByProject[url]?.activePreset ?? AgentPreset.defaults[0]
+    }
+
+    func terminalRestartID(for url: URL) -> Int {
+        terminalStateByProject[url]?.restartID ?? 0
+    }
+
+    func setTerminalPreset(_ preset: AgentPreset, for url: URL) {
+        terminalStateByProject[url, default: ProjectTerminalState()].activePreset = preset
+        terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
+    }
+
+    func restartTerminal(for url: URL) {
+        terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
     }
 
     var palette: ColorPalette {
@@ -139,6 +157,11 @@ private struct ProjectTabState {
     var openedFileURLs: [URL]
     var activeCenterTab: CenterTab
     var browserURL: URL?
+}
+
+struct ProjectTerminalState {
+    var activePreset: AgentPreset = AgentPreset.defaults[0]
+    var restartID: Int = 0
 }
 
 struct Project: Identifiable, Hashable {

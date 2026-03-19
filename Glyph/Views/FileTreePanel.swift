@@ -280,31 +280,31 @@ private struct FileTreeNode: View {
                     // Chevron (directories) or spacer (files)
                     if item.isDirectory {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(palette.secondaryText.opacity(0.45))
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .frame(width: 14, alignment: .center)
+                            .frame(width: 20, alignment: .center)
                     } else {
-                        Color.clear.frame(width: 14)
+                        Color.clear.frame(width: 20)
                     }
 
                     // Icon
                     Image(systemName: item.isDirectory
                           ? (isExpanded ? "folder.fill" : "folder")
                           : item.sfSymbol())
-                        .font(.system(size: 13))
+                        .font(.system(size: 26))
                         .foregroundStyle(isSelected
                             ? palette.accent
                             : (item.isDirectory
                                ? palette.secondaryText.opacity(0.7)
                                : palette.secondaryText.opacity(0.6)))
-                        .frame(width: 18, alignment: .center)
+                        .frame(width: 30, alignment: .center)
 
                     Spacer().frame(width: 6)
 
                     // Label
                     Text(item.name)
-                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                        .font(.system(size: 14, weight: isSelected ? .medium : .regular))
                         .foregroundStyle(isSelected
                             ? palette.primaryText
                             : palette.secondaryText.opacity(0.85))
@@ -320,7 +320,7 @@ private struct FileTreeNode: View {
                             .padding(.trailing, 10)
                     }
                 }
-                .frame(height: 28)
+                .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 .background(
                     Group {
@@ -444,12 +444,12 @@ private struct SidebarRow: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 14))
+                    .font(.system(size: 28))
                     .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText)
-                    .frame(width: 18, alignment: .center)
+                    .frame(width: 32, alignment: .center)
 
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                    .font(.system(size: 14, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText.opacity(0.85))
                     .lineLimit(1)
 

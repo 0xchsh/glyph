@@ -2,8 +2,6 @@
 //  GlyphApp.swift
 //  Glyph
 //
-//  Created by Carlo Shin on 3/18/26.
-//
 
 import SwiftUI
 
@@ -13,5 +11,8 @@ struct GlyphApp: App {
         WindowGroup {
             ContentView()
         }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unifiedCompact)
+        .defaultSize(width: 1440, height: 900)
     }
 }

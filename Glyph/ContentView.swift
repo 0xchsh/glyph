@@ -2,23 +2,21 @@
 //  ContentView.swift
 //  Glyph
 //
-//  Created by Carlo Shin on 3/18/26.
-//
 
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @State private var appState = AppState()
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            if appState.rootDirectory == nil {
+                OnboardingView()
+            } else {
+                MainLayoutView()
+            }
+        }
+        .environment(appState)
+        .preferredColorScheme(appState.palette.isDark ? .dark : .light)
+    }
 }

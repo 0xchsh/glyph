@@ -80,8 +80,10 @@ struct AgentPreset: Identifiable {
     let shellArgs: [String]
 
     static let defaults: [AgentPreset] = [
-        AgentPreset(id: "shell",       displayName: "shell",  shellArgs: ["-l"]),
-        AgentPreset(id: "claude",      displayName: "claude", shellArgs: ["-l", "-c", "claude; exec $SHELL -l"]),
-        AgentPreset(id: "claude-yolo", displayName: "yolo",   shellArgs: ["-l", "-c", "claude --dangerously-skip-permissions; exec $SHELL -l"]),
+        AgentPreset(id: "shell",       displayName: "shell",        shellArgs: ["-l"]),
+        AgentPreset(id: "claude",      displayName: "claude",       shellArgs: ["-l", "-c", "claude; exec $SHELL -l"]),
+        AgentPreset(id: "claude-yolo", displayName: "claude --yolo",shellArgs: ["-l", "-c", "claude --dangerously-skip-permissions; exec $SHELL -l"]),
+        AgentPreset(id: "gemini",      displayName: "gemini",       shellArgs: ["-l", "-c", "gemini; exec $SHELL -l"]),
+        AgentPreset(id: "codex",       displayName: "codex",        shellArgs: ["-l", "-c", "codex; exec $SHELL -l"]),
     ]
 }

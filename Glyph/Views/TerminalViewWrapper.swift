@@ -53,24 +53,42 @@ struct TerminalViewWrapper: NSViewRepresentable {
     let restartID: Int
     var onURLDetected: ((String) -> Void)?
 
+    private let padding: CGFloat = 16
+
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
-    func makeNSView(context: Context) -> GlyphTerminalView {
-        let view = GlyphTerminalView(frame: .zero)
-        configure(view, coordinator: context.coordinator)
-        view.startProcess(
+    func makeNSView(context: Context) -> NSView {
+        let container = NSView()
+        container.wantsLayer = true
+        container.layer?.backgroundColor = backgroundColor.cgColor
+
+        let terminal = GlyphTerminalView(frame: .zero)
+        configure(terminal, coordinator: context.coordinator)
+        terminal.startProcess(
             executable: shell,
             args: shellArgs,
             environment: nil,
             execName: nil,
             currentDirectory: workingDirectory
         )
-        return view
+
+        container.addSubview(terminal)
+        terminal.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            terminal.topAnchor.constraint(equalTo: container.topAnchor, constant: padding),
+            terminal.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: padding),
+            terminal.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -padding),
+            terminal.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -padding),
+        ])
+
+        return container
     }
 
-    func updateNSView(_ view: GlyphTerminalView, context: Context) {
+    func updateNSView(_ container: NSView, context: Context) {
+        container.layer?.backgroundColor = backgroundColor.cgColor
+        guard let view = context.coordinator.view else { return }
         view.nativeBackgroundColor = backgroundColor
         view.nativeForegroundColor = foregroundColor
         view.onURLDetected = onURLDetected

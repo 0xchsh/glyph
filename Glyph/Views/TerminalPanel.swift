@@ -32,30 +32,49 @@ struct TerminalPanel: View {
 
                 Spacer()
 
-                ForEach(AgentPreset.defaults) { preset in
-                    Button {
-                        guard preset.id != activePreset.id else { return }
-                        activePreset = preset
-                        restartID += 1
-                    } label: {
-                        Text(preset.displayName)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(
-                                activePreset.id == preset.id ? palette.accent : palette.secondaryText
-                            )
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(
-                                        activePreset.id == preset.id
-                                            ? palette.accent.opacity(0.12)
-                                            : palette.appBackground
-                                    )
-                            )
-                    }
-                    .buttonStyle(.plain)
+                // + New shell
+                Button {
+                    activePreset = AgentPreset.defaults[0] // shell
+                    restartID += 1
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(palette.secondaryText)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+
+                // Preset picker
+                Menu {
+                    ForEach(AgentPreset.defaults) { preset in
+                        Button {
+                            activePreset = preset
+                            restartID += 1
+                        } label: {
+                            if activePreset.id == preset.id {
+                                Label(preset.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(preset.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(activePreset.displayName)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(palette.primaryText)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(palette.secondaryText)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(palette.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

@@ -5,6 +5,11 @@
 
 import SwiftUI
 
+enum CenterTab: Hashable {
+    case preview
+    case file(URL)
+}
+
 @Observable
 class AppState {
     var rootDirectory: URL? {
@@ -16,10 +21,76 @@ class AppState {
     }
     var projects: [Project] = []
     var selectedProject: Project? {
-        didSet { browserURL = nil }
+        didSet {
+            // Save current tab state for the previous project
+            if let prev = oldValue {
+                tabStateByProject[prev.url] = ProjectTabState(
+                    openedFileURLs: openedFileURLs,
+                    activeCenterTab: activeCenterTab,
+                    browserURL: browserURL
+                )
+            }
+            // Restore saved state for the newly selected project
+            if let new = selectedProject,
+               let saved = tabStateByProject[new.url] {
+                openedFileURLs = saved.openedFileURLs
+                activeCenterTab = saved.activeCenterTab
+                browserURL = saved.browserURL
+            } else {
+                openedFileURLs = []
+                activeCenterTab = .preview
+                browserURL = nil
+            }
+        }
     }
     var browserURL: URL?
     var currentPalette: Palette = .obsidian
+
+    var openedFileURLs: [URL] = []
+    var activeCenterTab: CenterTab = .preview
+    var dirtyFiles: Set<URL> = []
+    private var tabStateByProject: [URL: ProjectTabState] = [:]
+
+    func markDirty(_ url: URL) { dirtyFiles.insert(url) }
+    func markClean(_ url: URL) { dirtyFiles.remove(url) }
+
+    func openFile(_ url: URL) {
+        if !openedFileURLs.contains(url) {
+            openedFileURLs.append(url)
+        }
+        activeCenterTab = .file(url)
+    }
+
+    func closeFile(_ url: URL) {
+        guard let idx = openedFileURLs.firstIndex(of: url) else { return }
+        openedFileURLs.remove(at: idx)
+        dirtyFiles.remove(url)
+        if activeCenterTab == .file(url) {
+            if openedFileURLs.isEmpty {
+                activeCenterTab = .preview
+            } else {
+                let newIdx = min(idx, openedFileURLs.count - 1)
+                activeCenterTab = .file(openedFileURLs[newIdx])
+            }
+        }
+    }
+
+    func closeOthers(except url: URL) {
+        let others = openedFileURLs.filter { $0 != url }
+        others.forEach { dirtyFiles.remove($0) }
+        openedFileURLs = [url]
+        activeCenterTab = .file(url)
+    }
+
+    func closeToRight(of url: URL) {
+        guard let idx = openedFileURLs.firstIndex(of: url) else { return }
+        let toRemove = openedFileURLs[(idx + 1)...]
+        toRemove.forEach { dirtyFiles.remove($0) }
+        openedFileURLs = Array(openedFileURLs.prefix(through: idx))
+        if case .file(let active) = activeCenterTab, !openedFileURLs.contains(active) {
+            activeCenterTab = .file(url)
+        }
+    }
 
     var palette: ColorPalette {
         ColorPalette.make(currentPalette)
@@ -62,6 +133,12 @@ class AppState {
         scanForProjects()
         selectedProject = projects.first { $0.url == projectURL }
     }
+}
+
+private struct ProjectTabState {
+    var openedFileURLs: [URL]
+    var activeCenterTab: CenterTab
+    var browserURL: URL?
 }
 
 struct Project: Identifiable, Hashable {

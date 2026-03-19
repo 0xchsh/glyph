@@ -18,7 +18,7 @@ struct MainLayoutView: View {
             FileTreePanel()
                 .frame(minWidth: 160, idealWidth: 220, maxWidth: 320)
 
-            BrowserPanel()
+            CenterPanel()
                 .frame(minWidth: 280)
 
             TerminalPanel()

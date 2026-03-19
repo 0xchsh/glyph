@@ -46,6 +46,7 @@ final class DirectoryWatcher {
 struct FileTreePanel: View {
     @Environment(AppState.self) private var appState
     @State private var fileItems: [FileItem] = []
+    @State private var expandedFolders: Set<URL> = []
     @State private var watcher = DirectoryWatcher()
     @State private var isNewProjectPresented = false
     @State private var newProjectName = ""
@@ -112,111 +113,67 @@ struct FileTreePanel: View {
                         }
                     }
 
-                Spacer().frame(height: 20)
+                    Spacer().frame(height: 20)
 
-                // ── Files ─────────────────────────────────────────────
-                SidebarSectionHeader(title: "Files", palette: palette)
+                    // ── Files ─────────────────────────────────────────────
+                    SidebarSectionHeader(title: "Files", palette: palette)
 
-                if fileItems.isEmpty {
-                    Text(appState.selectedProject == nil ? "No project selected" : "Empty")
-                        .font(.system(size: 13))
-                        .foregroundStyle(palette.secondaryText.opacity(0.4))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                } else {
-                    ForEach(fileItems) { item in
-                        SidebarRow(
-                            icon: item.sfSymbol(),
-                            label: item.name,
-                            isSelected: false,
-                            palette: palette
-                        ) {}
-                        .contextMenu {
-                            Button("New File…") {
-                                newItemParent = item.isDirectory
-                                    ? item.url
-                                    : item.url.deletingLastPathComponent()
-                                newItemIsFile = true
-                                newItemName = ""
-                                isNewItemPresented = true
-                            }
-                            Button("New Folder…") {
-                                newItemParent = item.isDirectory
-                                    ? item.url
-                                    : item.url.deletingLastPathComponent()
-                                newItemIsFile = false
-                                newItemName = ""
-                                isNewItemPresented = true
-                            }
-
-                            Divider()
-
-                            Button("Reveal in Finder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([item.url])
-                            }
-
-                            Divider()
-
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.writeObjects([item.url as NSURL])
-                            }
-
-                            Divider()
-
-                            Button("Copy Path") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(item.url.path, forType: .string)
-                            }
-                            Button("Copy Relative Path") {
-                                guard let projectURL = appState.selectedProject?.url else { return }
-                                let rel = String(item.url.path.dropFirst(projectURL.path.count + 1))
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(rel, forType: .string)
-                            }
-
-                            Divider()
-
-                            Button("Rename…") {
-                                renamingItem = item
-                                renameText = item.name
-                            }
-                            Button("Delete", role: .destructive) {
-                                try? FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-                                loadFiles()
-                            }
+                    if fileItems.isEmpty {
+                        Text(appState.selectedProject == nil ? "No project selected" : "Empty")
+                            .font(.system(size: 13))
+                            .foregroundStyle(palette.secondaryText.opacity(0.4))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                    } else {
+                        ForEach(fileItems) { item in
+                            FileTreeNode(
+                                item: item,
+                                depth: 0,
+                                expandedFolders: $expandedFolders,
+                                onRename: { renamingItem = $0; renameText = $0.name },
+                                onNewItem: { parent, isFile in
+                                    newItemParent = parent
+                                    newItemIsFile = isFile
+                                    newItemName = ""
+                                    isNewItemPresented = true
+                                },
+                                onDelete: { item in
+                                    try? FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
+                                    loadFiles()
+                                }
+                            )
                         }
                     }
-                }
 
-                Spacer().frame(height: 20)
+                    Spacer().frame(height: 20)
 
-                // ── Ports ─────────────────────────────────────────────
-                SidebarSectionHeader(title: "Ports", palette: palette)
+                    // ── Ports ─────────────────────────────────────────────
+                    SidebarSectionHeader(title: "Ports", palette: palette)
 
-                HStack(spacing: 10) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 7))
-                        .foregroundStyle(appState.browserURL != nil ? Color.green : palette.secondaryText.opacity(0.4))
-                    if let url = appState.browserURL {
-                        Text("\(url.host ?? "localhost"):\(url.port.map(String.init) ?? "80")")
-                            .font(.system(size: 13))
-                            .foregroundStyle(palette.primaryText)
-                    } else {
-                        Text("No active server")
-                            .font(.system(size: 13))
-                            .foregroundStyle(palette.secondaryText)
+                    HStack(spacing: 10) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 7))
+                            .foregroundStyle(appState.browserURL != nil ? Color.green : palette.secondaryText.opacity(0.4))
+                        if let url = appState.browserURL {
+                            Text("\(url.host ?? "localhost"):\(url.port.map(String.init) ?? "80")")
+                                .font(.system(size: 13))
+                                .foregroundStyle(palette.primaryText)
+                        } else {
+                            Text("No active server")
+                                .font(.system(size: 13))
+                                .foregroundStyle(palette.secondaryText)
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
             }
-            .padding(.top, 8)
-            .padding(.bottom, 16)
-        }
         }
         .background(palette.sidebarBackground)
         .onChange(of: appState.selectedProject, initial: true) { _, project in
+            expandedFolders = []
             loadFiles()
             if let url = project?.url {
                 watcher.watch(url) { loadFiles() }
@@ -274,6 +231,170 @@ struct FileTreePanel: View {
             try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
         }
         loadFiles()
+    }
+}
+
+// MARK: - FileTreeNode
+
+private struct FileTreeNode: View {
+    @Environment(AppState.self) private var appState
+    let item: FileItem
+    let depth: Int
+    @Binding var expandedFolders: Set<URL>
+    let onRename: (FileItem) -> Void
+    let onNewItem: (URL, Bool) -> Void
+    let onDelete: (FileItem) -> Void
+
+    private var isExpanded: Bool { expandedFolders.contains(item.url) }
+    private var isSelected: Bool {
+        !item.isDirectory && appState.activeCenterTab == .file(item.url)
+    }
+    private var isDirty: Bool {
+        !item.isDirectory && appState.dirtyFiles.contains(item.url)
+    }
+    private var children: [FileItem] {
+        guard item.isDirectory && isExpanded else { return [] }
+        return FileItem.load(from: item.url)
+    }
+
+    var body: some View {
+        let palette = appState.palette
+
+        VStack(spacing: 0) {
+            // Row
+            Button {
+                if item.isDirectory {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        if isExpanded { expandedFolders.remove(item.url) }
+                        else { expandedFolders.insert(item.url) }
+                    }
+                } else {
+                    appState.openFile(item.url)
+                }
+            } label: {
+                HStack(spacing: 0) {
+                    // Indentation
+                    Color.clear
+                        .frame(width: max(0, CGFloat(depth) * 14 + 10))
+
+                    // Chevron (directories) or spacer (files)
+                    if item.isDirectory {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(palette.secondaryText.opacity(0.45))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .frame(width: 14, alignment: .center)
+                    } else {
+                        Color.clear.frame(width: 14)
+                    }
+
+                    // Icon
+                    Image(systemName: item.isDirectory
+                          ? (isExpanded ? "folder.fill" : "folder")
+                          : item.sfSymbol())
+                        .font(.system(size: 13))
+                        .foregroundStyle(isSelected
+                            ? palette.accent
+                            : (item.isDirectory
+                               ? palette.secondaryText.opacity(0.7)
+                               : palette.secondaryText.opacity(0.6)))
+                        .frame(width: 18, alignment: .center)
+
+                    Spacer().frame(width: 6)
+
+                    // Label
+                    Text(item.name)
+                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                        .foregroundStyle(isSelected
+                            ? palette.primaryText
+                            : palette.secondaryText.opacity(0.85))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    // Dirty dot
+                    if isDirty {
+                        Circle()
+                            .fill(palette.accent.opacity(0.8))
+                            .frame(width: 6, height: 6)
+                            .padding(.trailing, 10)
+                    }
+                }
+                .frame(height: 28)
+                .frame(maxWidth: .infinity)
+                .background(
+                    Group {
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(palette.isDark
+                                      ? Color(white: 0.22)
+                                      : Color(white: 0.0, opacity: 0.07))
+                                .padding(.horizontal, 6)
+                        }
+                    }
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .contextMenu { contextMenuItems }
+
+            // Children
+            if isExpanded {
+                ForEach(children) { child in
+                    FileTreeNode(
+                        item: child,
+                        depth: depth + 1,
+                        expandedFolders: $expandedFolders,
+                        onRename: onRename,
+                        onNewItem: onNewItem,
+                        onDelete: onDelete
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        Button("New File…") {
+            let parent = item.isDirectory ? item.url : item.url.deletingLastPathComponent()
+            onNewItem(parent, true)
+        }
+        Button("New Folder…") {
+            let parent = item.isDirectory ? item.url : item.url.deletingLastPathComponent()
+            onNewItem(parent, false)
+        }
+
+        Divider()
+
+        Button("Reveal in Finder") {
+            NSWorkspace.shared.activateFileViewerSelecting([item.url])
+        }
+
+        Divider()
+
+        Button("Copy") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.writeObjects([item.url as NSURL])
+        }
+
+        Divider()
+
+        Button("Copy Path") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.url.path, forType: .string)
+        }
+        Button("Copy Relative Path") {
+            guard let projectURL = appState.selectedProject?.url else { return }
+            let rel = String(item.url.path.dropFirst(projectURL.path.count + 1))
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(rel, forType: .string)
+        }
+
+        Divider()
+
+        Button("Rename…") { onRename(item) }
+        Button("Delete", role: .destructive) { onDelete(item) }
     }
 }
 

@@ -120,7 +120,13 @@ struct TerminalViewWrapper: NSViewRepresentable {
     private func configure(_ view: GlyphTerminalView, coordinator: Coordinator) {
         view.nativeBackgroundColor = backgroundColor
         view.nativeForegroundColor = foregroundColor
-        view.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        view.caretColor = .white
+        let descriptor = NSFontDescriptor(fontAttributes: [
+            .family: "JetBrains Mono",
+            .face: "Regular"
+        ])
+        view.font = NSFont(descriptor: descriptor, size: 13)
+            ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         view.onURLDetected = onURLDetected
         view.processDelegate = coordinator
         coordinator.view = view

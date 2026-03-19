@@ -5,27 +5,24 @@
 
 import SwiftUI
 
+/// Shared toolbar height used by all three panel headers so they stay visually aligned.
+let panelToolbarHeight: CGFloat = 38
+
 struct MainLayoutView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
         let palette = appState.palette
 
-        HStack(spacing: 0) {
+        HSplitView {
             FileTreePanel()
-                .frame(width: 220)
-
-            palette.border
-                .frame(width: 1)
+                .frame(minWidth: 160, idealWidth: 220, maxWidth: 320)
 
             BrowserPanel()
-                .frame(maxWidth: .infinity)
-
-            palette.border
-                .frame(width: 1)
+                .frame(minWidth: 280)
 
             TerminalPanel()
-                .frame(maxWidth: .infinity)
+                .frame(minWidth: 280)
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(palette.appBackground)

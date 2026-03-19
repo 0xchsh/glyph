@@ -55,7 +55,7 @@ struct BrowserPanel: View {
                 .disabled(appState.browserURL == nil)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .frame(height: panelToolbarHeight)
             .background(palette.panelBackground)
 
             palette.border.frame(height: 1)

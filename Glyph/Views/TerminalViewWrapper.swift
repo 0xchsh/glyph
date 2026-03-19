@@ -13,6 +13,12 @@ import SwiftTerm
 final class GlyphTerminalView: LocalProcessTerminalView {
     var onURLDetected: ((String) -> Void)?
 
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        // SwiftTerm uses a legacy NSScroller — hide it on first appearance
+        subviews.compactMap { $0 as? NSScroller }.forEach { $0.isHidden = true }
+    }
+
     override func dataReceived(slice: ArraySlice<UInt8>) {
         super.dataReceived(slice: slice)
         guard let text = String(bytes: slice, encoding: .utf8) else { return }

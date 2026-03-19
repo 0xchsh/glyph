@@ -63,42 +63,54 @@ struct FileTreePanel: View {
     var body: some View {
         let palette = appState.palette
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-
-                // ── Projects ─────────────────────────────────────────
-                SidebarSectionHeader(title: "Projects", palette: palette) {
-                    Button {
-                        newProjectName = ""
-                        isNewProjectPresented = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(palette.secondaryText)
-                            .frame(width: 22, height: 22)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            // ── Projects toolbar ──────────────────────────────────────
+            HStack {
+                Text("PROJECTS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(palette.secondaryText)
+                    .tracking(0.8)
+                Spacer()
+                Button {
+                    newProjectName = ""
+                    isNewProjectPresented = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(palette.secondaryText)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: panelToolbarHeight)
+            .background(palette.panelBackground)
 
-                if appState.projects.isEmpty {
-                    Text("No projects yet")
-                        .font(.system(size: 13))
-                        .foregroundStyle(palette.secondaryText.opacity(0.4))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                } else {
-                    ForEach(appState.projects) { project in
-                        SidebarRow(
-                            icon: "folder",
-                            label: project.name,
-                            isSelected: appState.selectedProject == project,
-                            palette: palette
-                        ) {
-                            appState.selectedProject = project
+            palette.border.frame(height: 1)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+
+                    // ── Projects ──────────────────────────────────────
+                    if appState.projects.isEmpty {
+                        Text("No projects yet")
+                            .font(.system(size: 13))
+                            .foregroundStyle(palette.secondaryText.opacity(0.4))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                    } else {
+                        ForEach(appState.projects) { project in
+                            SidebarRow(
+                                icon: "folder",
+                                label: project.name,
+                                isSelected: appState.selectedProject == project,
+                                palette: palette
+                            ) {
+                                appState.selectedProject = project
+                            }
                         }
                     }
-                }
 
                 Spacer().frame(height: 20)
 
@@ -201,6 +213,7 @@ struct FileTreePanel: View {
             }
             .padding(.top, 8)
             .padding(.bottom, 16)
+        }
         }
         .background(palette.sidebarBackground)
         .onChange(of: appState.selectedProject, initial: true) { _, project in

@@ -77,7 +77,7 @@ struct TerminalPanel: View {
                 .fixedSize()
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .frame(height: panelToolbarHeight)
             .background(palette.panelBackground)
 
             palette.border.frame(height: 1)

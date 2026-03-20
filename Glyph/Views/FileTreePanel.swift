@@ -91,93 +91,9 @@ struct FileTreePanel: View {
             palette.border.frame(height: 1)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-
-                    // ── Projects ──────────────────────────────────────
-                    if appState.projects.isEmpty {
-                        Text("No projects yet")
-                            .font(.system(size: 13))
-                            .foregroundStyle(palette.secondaryText.opacity(0.4))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 6)
-                    } else {
-                        ForEach(appState.projects) { project in
-                            SidebarRow(
-                                icon: "folder",
-                                label: project.name,
-                                isSelected: appState.selectedProject == project,
-                                palette: palette,
-                                status: appState.projectStatus(for: project.url),
-                                onRefresh: { appState.refreshProject(project.url) }
-                            ) {
-                                appState.selectedProject = project
-                            }
-                        }
-                    }
-
-                    Spacer().frame(height: 20)
-
-                    // ── Files ─────────────────────────────────────────────
-                    SidebarSectionHeader(title: "Files", palette: palette)
-
-                    if fileItems.isEmpty {
-                        Text(appState.selectedProject == nil ? "No project selected" : "Empty")
-                            .font(.system(size: 13))
-                            .foregroundStyle(palette.secondaryText.opacity(0.4))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 6)
-                    } else {
-                        ForEach(fileItems) { item in
-                            FileTreeNode(
-                                item: item,
-                                depth: 0,
-                                expandedFolders: $expandedFolders,
-                                onRename: { renamingItem = $0; renameText = $0.name },
-                                onNewItem: { parent, isFile in
-                                    newItemParent = parent
-                                    newItemIsFile = isFile
-                                    newItemName = ""
-                                    isNewItemPresented = true
-                                },
-                                onDelete: { item in
-                                    try? FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-                                    loadFiles()
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer().frame(height: 20)
-
-                    // ── Ports ─────────────────────────────────────────────
-                    SidebarSectionHeader(title: "Ports", palette: palette)
-
-                    let currentPort = appState.port(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
-                    HStack(spacing: 10) {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 7))
-                            .foregroundStyle(currentPort != nil ? Color.green : palette.secondaryText.opacity(0.4))
-                        if let port = currentPort {
-                            Button {
-                                appState.browserURL = port
-                                appState.activeCenterTab = .preview
-                            } label: {
-                                Text(":\(port.port.map(String.init) ?? "80")")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(palette.primaryText)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Text("No active server")
-                                .font(.system(size: 13))
-                                .foregroundStyle(palette.secondaryText)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 5)
-                }
-                .padding(.top, 8)
-                .padding(.bottom, 16)
+                sidebarContent(palette: palette)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
             }
         }
         .background(palette.sidebarBackground)
@@ -214,6 +130,102 @@ struct FileTreePanel: View {
             }
             .environment(appState)
         }
+    }
+
+    @ViewBuilder
+    private func sidebarContent(palette: ColorPalette) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Projects
+            if appState.projects.isEmpty {
+                Text("No projects yet")
+                    .font(.system(size: 13))
+                    .foregroundStyle(palette.secondaryText.opacity(0.4))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+            } else {
+                ForEach(appState.projects) { project in
+                    SidebarRow(
+                        icon: "folder",
+                        label: project.name,
+                        isSelected: appState.selectedProject == project,
+                        palette: palette,
+                        status: appState.projectStatus(for: project.url),
+                        onRefresh: { appState.refreshProject(project.url) }
+                    ) {
+                        appState.selectedProject = project
+                    }
+                }
+            }
+
+            Spacer().frame(height: 20)
+
+            // Files
+            SidebarSectionHeader(title: "Files", palette: palette)
+            fileSection(palette: palette)
+
+            Spacer().frame(height: 20)
+
+            // Ports
+            SidebarSectionHeader(title: "Ports", palette: palette)
+            portsSection(palette: palette)
+        }
+    }
+
+    @ViewBuilder
+    private func fileSection(palette: ColorPalette) -> some View {
+        if fileItems.isEmpty {
+            Text(appState.selectedProject == nil ? "No project selected" : "Empty")
+                .font(.system(size: 13))
+                .foregroundStyle(palette.secondaryText.opacity(0.4))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+        } else {
+            ForEach(fileItems) { item in
+                FileTreeNode(
+                    item: item,
+                    depth: 0,
+                    expandedFolders: $expandedFolders,
+                    onRename: { renamingItem = $0; renameText = $0.name },
+                    onNewItem: { parent, isFile in
+                        newItemParent = parent
+                        newItemIsFile = isFile
+                        newItemName = ""
+                        isNewItemPresented = true
+                    },
+                    onDelete: { item in
+                        try? FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
+                        loadFiles()
+                    }
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func portsSection(palette: ColorPalette) -> some View {
+        let currentPort = appState.port(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
+        HStack(spacing: 10) {
+            Image(systemName: "circle.fill")
+                .font(.system(size: 7))
+                .foregroundStyle(currentPort != nil ? Color.green : palette.secondaryText.opacity(0.4))
+            if let port = currentPort {
+                Button {
+                    appState.browserURL = port
+                    appState.activeCenterTab = .preview
+                } label: {
+                    Text(":\(port.port.map(String.init) ?? "80")")
+                        .font(.system(size: 13))
+                        .foregroundStyle(palette.primaryText)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("No active server")
+                    .font(.system(size: 13))
+                    .foregroundStyle(palette.secondaryText)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 5)
     }
 
     private func loadFiles() {

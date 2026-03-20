@@ -150,22 +150,44 @@ struct FileTreePanel: View {
                     // ── Ports ─────────────────────────────────────────────
                     SidebarSectionHeader(title: "Ports", palette: palette)
 
-                    HStack(spacing: 10) {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 7))
-                            .foregroundStyle(appState.browserURL != nil ? Color.green : palette.secondaryText.opacity(0.4))
-                        if let url = appState.browserURL {
-                            Text("\(url.host ?? "localhost"):\(url.port.map(String.init) ?? "80")")
-                                .font(.system(size: 13))
-                                .foregroundStyle(palette.primaryText)
-                        } else {
+                    let servers = appState.servers(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
+                    if servers.isEmpty {
+                        HStack(spacing: 10) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 7))
+                                .foregroundStyle(palette.secondaryText.opacity(0.4))
                             Text("No active server")
                                 .font(.system(size: 13))
                                 .foregroundStyle(palette.secondaryText)
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                    } else {
+                        ForEach(servers) { server in
+                            Button {
+                                appState.browserURL = server.url
+                                appState.activeCenterTab = .preview
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: server.hasConflict ? "exclamationmark.triangle.fill" : "circle.fill")
+                                        .font(.system(size: server.hasConflict ? 11 : 7))
+                                        .foregroundStyle(server.hasConflict ? Color.orange : Color.green)
+                                    Text(":\(server.url.port.map(String.init) ?? "80")")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(server.hasConflict ? palette.secondaryText.opacity(0.7) : palette.primaryText)
+                                    if server.hasConflict {
+                                        Text("conflict")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Color.orange.opacity(0.8))
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 5)
+                        }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 5)
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 16)

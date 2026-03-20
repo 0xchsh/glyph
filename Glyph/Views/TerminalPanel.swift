@@ -92,9 +92,14 @@ struct TerminalPanel: View {
                         foregroundColor: palette.nsForeground,
                         restartID: appState.terminalRestartID(for: url),
                         onURLDetected: { urlString in
-                            guard url == appState.selectedProject?.url,
-                                  let detected = URL(string: urlString) else { return }
-                            appState.browserURL = detected
+                            guard let detected = URL(string: urlString) else { return }
+                            appState.addServer(detected, for: url)
+                            if url == appState.selectedProject?.url && appState.browserURL == nil {
+                                appState.browserURL = detected
+                            }
+                        },
+                        onConflictDetected: { port in
+                            appState.markConflict(port: port, for: url)
                         }
                     )
                     .opacity(url == selectedURL ? 1 : 0)

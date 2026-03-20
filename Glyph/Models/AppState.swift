@@ -51,6 +51,7 @@ class AppState {
     var dirtyFiles: Set<URL> = []
     private var tabStateByProject: [URL: ProjectTabState] = [:]
     private var terminalStateByProject: [URL: ProjectTerminalState] = [:]
+    private var serversByProject: [URL: [RunningServer]] = [:]
 
     func markDirty(_ url: URL) { dirtyFiles.insert(url) }
     func markClean(_ url: URL) { dirtyFiles.remove(url) }
@@ -104,10 +105,29 @@ class AppState {
     func setTerminalPreset(_ preset: AgentPreset, for url: URL) {
         terminalStateByProject[url, default: ProjectTerminalState()].activePreset = preset
         terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
+        serversByProject[url] = []
     }
 
     func restartTerminal(for url: URL) {
         terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
+        serversByProject[url] = []
+    }
+
+    func servers(for projectURL: URL) -> [RunningServer] {
+        serversByProject[projectURL] ?? []
+    }
+
+    func addServer(_ serverURL: URL, for projectURL: URL) {
+        guard !(serversByProject[projectURL]?.contains(where: { $0.url == serverURL }) ?? false) else { return }
+        serversByProject[projectURL, default: []].append(RunningServer(url: serverURL))
+    }
+
+    func markConflict(port: Int, for projectURL: URL) {
+        if let idx = serversByProject[projectURL]?.firstIndex(where: { $0.url.port == port }) {
+            serversByProject[projectURL]?[idx].hasConflict = true
+        } else if let url = URL(string: "http://localhost:\(port)") {
+            serversByProject[projectURL, default: []].append(RunningServer(url: url, hasConflict: true))
+        }
     }
 
     var palette: ColorPalette {
@@ -162,6 +182,12 @@ private struct ProjectTabState {
 struct ProjectTerminalState {
     var activePreset: AgentPreset = AgentPreset.defaults[0]
     var restartID: Int = 0
+}
+
+struct RunningServer: Identifiable, Hashable {
+    var id: URL { url }
+    let url: URL
+    var hasConflict: Bool = false
 }
 
 struct Project: Identifiable, Hashable {

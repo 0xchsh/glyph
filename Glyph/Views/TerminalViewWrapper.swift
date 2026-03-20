@@ -12,6 +12,7 @@ import SwiftTerm
 /// LocalProcessTerminalView subclass that watches stdout for dev server ready signals.
 final class GlyphTerminalView: LocalProcessTerminalView {
     var onURLDetected: ((String) -> Void)?
+    var onConflictDetected: ((Int) -> Void)?
 
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
@@ -26,16 +27,23 @@ final class GlyphTerminalView: LocalProcessTerminalView {
     }
 
     private func scanForDevServer(in text: String) {
-        // Match any http://localhost:PORT mention in terminal output
-        let pattern = #"(http://localhost:\d+)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+        // Detect port conflicts (EADDRINUSE)
+        if let conflictRegex = try? NSRegularExpression(pattern: #"EADDRINUSE.*?:+(\d+)"#) {
+            let range = NSRange(text.startIndex..., in: text)
+            if let match = conflictRegex.firstMatch(in: text, range: range),
+               let portRange = Range(match.range(at: 1), in: text),
+               let port = Int(text[portRange]) {
+                DispatchQueue.main.async { [weak self] in self?.onConflictDetected?(port) }
+                return
+            }
+        }
+        // Detect any http://localhost:PORT mention
+        guard let regex = try? NSRegularExpression(pattern: #"(http://localhost:\d+)"#) else { return }
         let range = NSRange(text.startIndex..., in: text)
         guard let match = regex.firstMatch(in: text, range: range),
               let urlRange = Range(match.range(at: 1), in: text) else { return }
         let url = String(text[urlRange])
-        DispatchQueue.main.async { [weak self] in
-            self?.onURLDetected?(url)
-        }
+        DispatchQueue.main.async { [weak self] in self?.onURLDetected?(url) }
     }
 }
 
@@ -49,6 +57,7 @@ struct TerminalViewWrapper: NSViewRepresentable {
     let foregroundColor: NSColor
     let restartID: Int
     var onURLDetected: ((String) -> Void)?
+    var onConflictDetected: ((Int) -> Void)?
 
     private let padding: CGFloat = 16
 
@@ -89,6 +98,7 @@ struct TerminalViewWrapper: NSViewRepresentable {
         view.nativeBackgroundColor = backgroundColor
         view.nativeForegroundColor = foregroundColor
         view.onURLDetected = onURLDetected
+        view.onConflictDetected = onConflictDetected
 
         guard context.coordinator.lastRestartID != restartID else { return }
         context.coordinator.lastRestartID = restartID
@@ -112,6 +122,7 @@ struct TerminalViewWrapper: NSViewRepresentable {
         view.nativeBackgroundColor = backgroundColor
         view.nativeForegroundColor = foregroundColor
         view.caretColor = .white
+        view.onConflictDetected = onConflictDetected
         let descriptor = NSFontDescriptor(fontAttributes: [
             .family: "JetBrains Mono",
             .face: "Regular"

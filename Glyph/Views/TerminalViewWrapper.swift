@@ -26,24 +26,15 @@ final class GlyphTerminalView: LocalProcessTerminalView {
     }
 
     private func scanForDevServer(in text: String) {
-        // Covers Next.js, Vite, CRA, Remix, SvelteKit, and similar
-        let patterns = [
-            #"ready on (http://localhost:\d+)"#,
-            #"➜\s+Local:\s+(http://localhost:\d+)"#,
-            #"Local:\s+(http://localhost:\d+)"#,
-            #"listening at (http://localhost:\d+)"#,
-            #"started server on [^\s,]+, url: (http://localhost:\d+)"#,
-        ]
-        for pattern in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
-            let range = NSRange(text.startIndex..., in: text)
-            guard let match = regex.firstMatch(in: text, range: range),
-                  let urlRange = Range(match.range(at: 1), in: text) else { continue }
-            let url = String(text[urlRange])
-            DispatchQueue.main.async { [weak self] in
-                self?.onURLDetected?(url)
-            }
-            return
+        // Match any http://localhost:PORT mention in terminal output
+        let pattern = #"(http://localhost:\d+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, range: range),
+              let urlRange = Range(match.range(at: 1), in: text) else { return }
+        let url = String(text[urlRange])
+        DispatchQueue.main.async { [weak self] in
+            self?.onURLDetected?(url)
         }
     }
 }

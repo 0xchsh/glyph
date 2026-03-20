@@ -106,7 +106,9 @@ struct FileTreePanel: View {
                                 icon: "folder",
                                 label: project.name,
                                 isSelected: appState.selectedProject == project,
-                                palette: palette
+                                palette: palette,
+                                status: appState.projectStatus(for: project.url),
+                                onRefresh: { appState.refreshProject(project.url) }
                             ) {
                                 appState.selectedProject = project
                             }
@@ -150,44 +152,29 @@ struct FileTreePanel: View {
                     // ── Ports ─────────────────────────────────────────────
                     SidebarSectionHeader(title: "Ports", palette: palette)
 
-                    let servers = appState.servers(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
-                    if servers.isEmpty {
-                        HStack(spacing: 10) {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 7))
-                                .foregroundStyle(palette.secondaryText.opacity(0.4))
+                    let currentPort = appState.port(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
+                    HStack(spacing: 10) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 7))
+                            .foregroundStyle(currentPort != nil ? Color.green : palette.secondaryText.opacity(0.4))
+                        if let port = currentPort {
+                            Button {
+                                appState.browserURL = port
+                                appState.activeCenterTab = .preview
+                            } label: {
+                                Text(":\(port.port.map(String.init) ?? "80")")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(palette.primaryText)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
                             Text("No active server")
                                 .font(.system(size: 13))
                                 .foregroundStyle(palette.secondaryText)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 5)
-                    } else {
-                        ForEach(servers) { server in
-                            Button {
-                                appState.browserURL = server.url
-                                appState.activeCenterTab = .preview
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: server.hasConflict ? "exclamationmark.triangle.fill" : "circle.fill")
-                                        .font(.system(size: server.hasConflict ? 11 : 7))
-                                        .foregroundStyle(server.hasConflict ? Color.orange : Color.green)
-                                    Text(":\(server.url.port.map(String.init) ?? "80")")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(server.hasConflict ? palette.secondaryText.opacity(0.7) : palette.primaryText)
-                                    if server.hasConflict {
-                                        Text("conflict")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(Color.orange.opacity(0.8))
-                                    }
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 5)
-                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 16)
@@ -204,6 +191,7 @@ struct FileTreePanel: View {
             }
         }
         .onDisappear { watcher.cancel() }
+        .onChange(of: appState.fileTreeRefreshToken) { _, _ in loadFiles() }
         // Rename alert
         .alert("Rename", isPresented: Binding(
             get: { renamingItem != nil },
@@ -461,6 +449,8 @@ private struct SidebarRow: View {
     let isSelected: Bool
     let palette: ColorPalette
     let action: () -> Void
+    var status: TerminalStatus? = nil
+    var onRefresh: (() -> Void)? = nil
 
     var body: some View {
         Button(action: action) {
@@ -476,6 +466,22 @@ private struct SidebarRow: View {
                     .lineLimit(1)
 
                 Spacer()
+
+                // Status indicator
+                switch status {
+                case .idle:
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 7, height: 7)
+                        .padding(.trailing, 4)
+                case .busy, .crashed:
+                    ProgressView()
+                        .scaleEffect(0.5)
+                        .frame(width: 16, height: 16)
+                        .padding(.trailing, 2)
+                case .none:
+                    EmptyView()
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
@@ -492,6 +498,11 @@ private struct SidebarRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if let onRefresh {
+                Button("Refresh") { onRefresh() }
+            }
+        }
     }
 }
 

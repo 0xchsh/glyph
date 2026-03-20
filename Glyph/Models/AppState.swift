@@ -5,10 +5,36 @@
 
 import SwiftUI
 
+// MARK: - Enums
+
 enum CenterTab: Hashable {
     case preview
     case file(URL)
 }
+
+enum TerminalStatus: Equatable {
+    case idle
+    case busy
+    case crashed
+}
+
+// MARK: - TerminalSession
+
+struct TerminalSession: Identifiable {
+    let id: UUID
+    let projectURL: URL
+    var preset: AgentPreset
+    var restartID: Int = 0
+    var status: TerminalStatus = .busy
+
+    init(projectURL: URL, preset: AgentPreset) {
+        self.id = UUID()
+        self.projectURL = projectURL
+        self.preset = preset
+    }
+}
+
+// MARK: - AppState
 
 @Observable
 class AppState {
@@ -22,7 +48,6 @@ class AppState {
     var projects: [Project] = []
     var selectedProject: Project? {
         didSet {
-            // Save current tab state for the previous project
             if let prev = oldValue {
                 tabStateByProject[prev.url] = ProjectTabState(
                     openedFileURLs: openedFileURLs,
@@ -30,9 +55,7 @@ class AppState {
                     browserURL: browserURL
                 )
             }
-            // Restore saved state for the newly selected project
-            if let new = selectedProject,
-               let saved = tabStateByProject[new.url] {
+            if let new = selectedProject, let saved = tabStateByProject[new.url] {
                 openedFileURLs = saved.openedFileURLs
                 activeCenterTab = saved.activeCenterTab
                 browserURL = saved.browserURL
@@ -41,25 +64,32 @@ class AppState {
                 activeCenterTab = .preview
                 browserURL = nil
             }
+            // Auto-spawn default shell if no sessions exist for this project
+            if let new = selectedProject, sessionsByProject[new.url]?.isEmpty ?? true {
+                addSession(preset: AgentPreset.defaults[0], for: new.url)
+            }
         }
     }
     var browserURL: URL?
     var currentPalette: Palette = .obsidian
+    var fileTreeRefreshToken: Int = 0
 
     var openedFileURLs: [URL] = []
     var activeCenterTab: CenterTab = .preview
     var dirtyFiles: Set<URL> = []
+
     private var tabStateByProject: [URL: ProjectTabState] = [:]
-    private var terminalStateByProject: [URL: ProjectTerminalState] = [:]
-    private var serversByProject: [URL: [RunningServer]] = [:]
+    private var sessionsByProject: [URL: [TerminalSession]] = [:]
+    private var activeSessionIDByProject: [URL: UUID] = [:]
+    private var portByProject: [URL: URL] = [:]
+
+    // MARK: - File tab operations
 
     func markDirty(_ url: URL) { dirtyFiles.insert(url) }
     func markClean(_ url: URL) { dirtyFiles.remove(url) }
 
     func openFile(_ url: URL) {
-        if !openedFileURLs.contains(url) {
-            openedFileURLs.append(url)
-        }
+        if !openedFileURLs.contains(url) { openedFileURLs.append(url) }
         activeCenterTab = .file(url)
     }
 
@@ -68,71 +98,127 @@ class AppState {
         openedFileURLs.remove(at: idx)
         dirtyFiles.remove(url)
         if activeCenterTab == .file(url) {
-            if openedFileURLs.isEmpty {
-                activeCenterTab = .preview
-            } else {
-                let newIdx = min(idx, openedFileURLs.count - 1)
-                activeCenterTab = .file(openedFileURLs[newIdx])
-            }
+            activeCenterTab = openedFileURLs.isEmpty ? .preview : .file(openedFileURLs[min(idx, openedFileURLs.count - 1)])
         }
     }
 
     func closeOthers(except url: URL) {
-        let others = openedFileURLs.filter { $0 != url }
-        others.forEach { dirtyFiles.remove($0) }
+        openedFileURLs.filter { $0 != url }.forEach { dirtyFiles.remove($0) }
         openedFileURLs = [url]
         activeCenterTab = .file(url)
     }
 
     func closeToRight(of url: URL) {
         guard let idx = openedFileURLs.firstIndex(of: url) else { return }
-        let toRemove = openedFileURLs[(idx + 1)...]
-        toRemove.forEach { dirtyFiles.remove($0) }
+        openedFileURLs[(idx + 1)...].forEach { dirtyFiles.remove($0) }
         openedFileURLs = Array(openedFileURLs.prefix(through: idx))
         if case .file(let active) = activeCenterTab, !openedFileURLs.contains(active) {
             activeCenterTab = .file(url)
         }
     }
 
-    func terminalPreset(for url: URL) -> AgentPreset {
-        terminalStateByProject[url]?.activePreset ?? AgentPreset.defaults[0]
+    // MARK: - Terminal sessions
+
+    var allSessions: [TerminalSession] {
+        // Stable order: sorted by project URL string then insertion order
+        sessionsByProject.keys
+            .sorted { $0.absoluteString < $1.absoluteString }
+            .flatMap { sessionsByProject[$0] ?? [] }
     }
 
-    func terminalRestartID(for url: URL) -> Int {
-        terminalStateByProject[url]?.restartID ?? 0
+    func sessions(for projectURL: URL) -> [TerminalSession] {
+        sessionsByProject[projectURL] ?? []
     }
 
-    func setTerminalPreset(_ preset: AgentPreset, for url: URL) {
-        terminalStateByProject[url, default: ProjectTerminalState()].activePreset = preset
-        terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
-        serversByProject[url] = []
+    func activeSessionID(for projectURL: URL) -> UUID? {
+        activeSessionIDByProject[projectURL]
     }
 
-    func restartTerminal(for url: URL) {
-        terminalStateByProject[url, default: ProjectTerminalState()].restartID += 1
-        serversByProject[url] = []
+    @discardableResult
+    func addSession(preset: AgentPreset, for projectURL: URL) -> UUID {
+        let session = TerminalSession(projectURL: projectURL, preset: preset)
+        let id = session.id
+        sessionsByProject[projectURL, default: []].append(session)
+        activeSessionIDByProject[projectURL] = id
+        return id
     }
 
-    func servers(for projectURL: URL) -> [RunningServer] {
-        serversByProject[projectURL] ?? []
+    func setActiveSession(_ id: UUID, for projectURL: URL) {
+        activeSessionIDByProject[projectURL] = id
     }
 
-    func addServer(_ serverURL: URL, for projectURL: URL) {
-        guard !(serversByProject[projectURL]?.contains(where: { $0.url == serverURL }) ?? false) else { return }
-        serversByProject[projectURL, default: []].append(RunningServer(url: serverURL))
-    }
-
-    func markConflict(port: Int, for projectURL: URL) {
-        if let idx = serversByProject[projectURL]?.firstIndex(where: { $0.url.port == port }) {
-            serversByProject[projectURL]?[idx].hasConflict = true
-        } else if let url = URL(string: "http://localhost:\(port)") {
-            serversByProject[projectURL, default: []].append(RunningServer(url: url, hasConflict: true))
+    func closeSession(_ id: UUID) {
+        for url in sessionsByProject.keys {
+            guard let idx = sessionsByProject[url]?.firstIndex(where: { $0.id == id }) else { continue }
+            sessionsByProject[url]?.remove(at: idx)
+            if activeSessionIDByProject[url] == id {
+                activeSessionIDByProject[url] = sessionsByProject[url]?.last?.id
+            }
+            return
         }
     }
+
+    func restartSession(_ id: UUID) {
+        for url in sessionsByProject.keys {
+            guard let idx = sessionsByProject[url]?.firstIndex(where: { $0.id == id }) else { continue }
+            sessionsByProject[url]?[idx].restartID += 1
+            sessionsByProject[url]?[idx].status = .busy
+            return
+        }
+    }
+
+    func updateSessionStatus(_ id: UUID, status: TerminalStatus) {
+        for url in sessionsByProject.keys {
+            guard let idx = sessionsByProject[url]?.firstIndex(where: { $0.id == id }) else { continue }
+            guard sessionsByProject[url]?[idx].status != status else { return }
+            sessionsByProject[url]?[idx].status = status
+            return
+        }
+    }
+
+    func projectStatus(for projectURL: URL) -> TerminalStatus? {
+        guard let sessions = sessionsByProject[projectURL], !sessions.isEmpty else { return nil }
+        if sessions.contains(where: { $0.status == .busy || $0.status == .crashed }) { return .busy }
+        return .idle
+    }
+
+    // MARK: - Port (single per project)
+
+    func port(for projectURL: URL) -> URL? {
+        portByProject[projectURL]
+    }
+
+    func setPort(_ url: URL, for projectURL: URL) {
+        portByProject[projectURL] = url
+    }
+
+    // MARK: - Refresh
+
+    func refreshProject(_ projectURL: URL) {
+        // Clear port
+        portByProject[projectURL] = nil
+        // Clear browser URL
+        if selectedProject?.url == projectURL {
+            browserURL = nil
+        } else {
+            tabStateByProject[projectURL]?.browserURL = nil
+        }
+        // Restart all sessions
+        for i in sessionsByProject[projectURL]?.indices ?? [].indices {
+            sessionsByProject[projectURL]?[i].restartID += 1
+            sessionsByProject[projectURL]?[i].status = .busy
+        }
+        // Trigger file tree rescan
+        fileTreeRefreshToken += 1
+    }
+
+    // MARK: - Theme
 
     var palette: ColorPalette {
         ColorPalette.make(currentPalette)
     }
+
+    // MARK: - Init & project scanning
 
     init() {
         if let path = UserDefaults.standard.string(forKey: "rootDirectoryPath"),
@@ -158,7 +244,6 @@ class AppState {
 
         projects = discovered
 
-        // Keep selection if it still exists, otherwise select first
         if selectedProject == nil || !projects.contains(where: { $0.url == selectedProject?.url }) {
             selectedProject = projects.first
         }
@@ -173,21 +258,12 @@ class AppState {
     }
 }
 
+// MARK: - Supporting types
+
 private struct ProjectTabState {
     var openedFileURLs: [URL]
     var activeCenterTab: CenterTab
     var browserURL: URL?
-}
-
-struct ProjectTerminalState {
-    var activePreset: AgentPreset = AgentPreset.defaults[0]
-    var restartID: Int = 0
-}
-
-struct RunningServer: Identifiable, Hashable {
-    var id: URL { url }
-    let url: URL
-    var hasConflict: Bool = false
 }
 
 struct Project: Identifiable, Hashable {

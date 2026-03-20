@@ -116,7 +116,7 @@ struct CodeViewerPanel: View {
                     language: language,
                     theme: theme,
                     fontSize: .constant(13),
-                    flags: [.editable, .selectable],
+                    flags: [.editable, .selectable, .showLineNumbers],
                     indentStyle: .softTab(width: 2),
                     inset: CGSize(width: 8, height: 8)
                 )

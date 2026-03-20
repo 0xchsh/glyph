@@ -212,6 +212,58 @@ class AppState {
         fileTreeRefreshToken += 1
     }
 
+    // MARK: - Git
+
+    enum GitOpState: Equatable {
+        case idle
+        case running
+        case success
+        case failed(String)
+    }
+
+    var gitOpState: GitOpState = .idle
+
+    func commitAndPush(message: String, projectURL: URL) {
+        guard gitOpState != .running else { return }
+        gitOpState = .running
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                try self?.runGit(["-C", projectURL.path, "add", "-A"])
+                try self?.runGit(["-C", projectURL.path, "commit", "-m", message])
+                try self?.runGit(["-C", projectURL.path, "push"])
+                DispatchQueue.main.async { self?.gitOpState = .success }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    if self?.gitOpState == .success { self?.gitOpState = .idle }
+                }
+            } catch GitError.failed(let output) {
+                DispatchQueue.main.async { self?.gitOpState = .failed(output) }
+            } catch {
+                DispatchQueue.main.async { self?.gitOpState = .failed(error.localizedDescription) }
+            }
+        }
+    }
+
+    private func runGit(_ args: [String]) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = args
+        process.environment = ProcessInfo.processInfo.environment
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "unknown error"
+            throw GitError.failed(output)
+        }
+    }
+
+    enum GitError: Error {
+        case failed(String)
+    }
+
     // MARK: - Theme
 
     var palette: ColorPalette {

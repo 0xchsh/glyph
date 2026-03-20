@@ -10,7 +10,14 @@ struct BrowserPanel: View {
     @Environment(AppState.self) private var appState
     @State private var webCoordinator: WebViewWrapper.Coordinator?
     @State private var urlText: String = ""
+    @State private var commitMessage: String = ""
     @FocusState private var urlFieldFocused: Bool
+
+    private var allSessionsIdle: Bool {
+        guard let url = appState.selectedProject?.url else { return false }
+        let sessions = appState.sessions(for: url)
+        return !sessions.isEmpty && sessions.allSatisfy { $0.status == .idle }
+    }
 
     var body: some View {
         let palette = appState.palette
@@ -69,6 +76,7 @@ struct BrowserPanel: View {
             palette.border.frame(height: 1)
 
             // Content
+            let gitState = appState.gitOpState
             if let url = appState.browserURL {
                 WebViewWrapper(url: url, onCoordinatorReady: { webCoordinator = $0 })
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -94,7 +102,62 @@ struct BrowserPanel: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            // Commit bar
+            palette.border.frame(height: 1)
+            HStack(spacing: 8) {
+                switch gitState {
+                case .running:
+                    ProgressView().scaleEffect(0.6).frame(width: 16, height: 16)
+                    Text("Committing...").font(.system(size: 12)).foregroundStyle(palette.secondaryText.opacity(0.6))
+                case .success:
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.system(size: 12))
+                    Text("Pushed successfully").font(.system(size: 12)).foregroundStyle(palette.secondaryText.opacity(0.7))
+                case .failed(let msg):
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.system(size: 12))
+                    Text(msg).font(.system(size: 11)).foregroundStyle(.red.opacity(0.8)).lineLimit(1)
+                    Button("Dismiss") { appState.gitOpState = .idle }.font(.system(size: 11)).buttonStyle(.plain).foregroundStyle(palette.secondaryText)
+                case .idle:
+                    if allSessionsIdle {
+                        TextField("Commit message…", text: $commitMessage)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12))
+                            .foregroundStyle(palette.primaryText)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(palette.appBackground, in: RoundedRectangle(cornerRadius: 5))
+                            .onSubmit { triggerCommit() }
+                        Button {
+                            triggerCommit()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                Text("Commit & Push")
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(commitMessage.trimmingCharacters(in: .whitespaces).isEmpty ? palette.secondaryText.opacity(0.35) : palette.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(commitMessage.trimmingCharacters(in: .whitespaces).isEmpty)
+                    } else {
+                        ProgressView().scaleEffect(0.6).frame(width: 16, height: 16)
+                        Text("Claude is still working…")
+                            .font(.system(size: 12))
+                            .foregroundStyle(palette.secondaryText.opacity(0.5))
+                    }
+                }
+                if gitState == .idle || gitState == .success { Spacer() }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(palette.panelBackground)
         }
+    }
+
+    private func triggerCommit() {
+        let msg = commitMessage.trimmingCharacters(in: .whitespaces)
+        guard !msg.isEmpty, let projectURL = appState.selectedProject?.url else { return }
+        appState.commitAndPush(message: msg, projectURL: projectURL)
+        commitMessage = ""
     }
 
     private func commitURL() {

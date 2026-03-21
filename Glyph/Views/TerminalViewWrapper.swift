@@ -24,20 +24,26 @@ final class GlyphTerminalView: LocalProcessTerminalView {
         super.dataReceived(slice: slice)
         guard let text = String(bytes: slice, encoding: .utf8) else { return }
 
-        // Only emit busy on the idle→busy transition
-        if lastEmittedStatus != .busy {
+        // Typing echoes single chars with no newline — only go busy once Enter (\r) or
+        // real output (\n) arrives, so the spinner doesn't flash while the user is typing.
+        let hasLineBreak = slice.contains(0x0A) || slice.contains(0x0D)
+
+        if hasLineBreak, lastEmittedStatus != .busy {
             lastEmittedStatus = .busy
             onStatusChanged?(.busy)
         }
 
-        // Debounce: 500ms of silence → idle
-        idleWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            self?.lastEmittedStatus = .idle
-            self?.onStatusChanged?(.idle)
+        // Keep resetting the idle timer while output flows (even mid-stream chunks
+        // without newlines), but only start the timer once we're actually busy.
+        if lastEmittedStatus == .busy || hasLineBreak {
+            idleWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                self?.lastEmittedStatus = .idle
+                self?.onStatusChanged?(.idle)
+            }
+            idleWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
         }
-        idleWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
 
         scanForDevServer(in: text)
     }

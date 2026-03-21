@@ -149,11 +149,10 @@ struct FileTreePanel: View {
                         label: project.name,
                         isSelected: appState.selectedProject == project,
                         palette: palette,
+                        action: { appState.selectedProject = project },
                         status: appState.projectStatus(for: project.url),
                         onRefresh: { appState.refreshProject(project.url) }
-                    ) {
-                        appState.selectedProject = project
-                    }
+                    )
                 }
             }
 

@@ -5,6 +5,19 @@
 
 import SwiftUI
 
+// MARK: - FocusedValue for AppState
+
+struct FocusedAppStateKey: FocusedValueKey {
+    typealias Value = AppState
+}
+
+extension FocusedValues {
+    var appState: AppState? {
+        get { self[FocusedAppStateKey.self] }
+        set { self[FocusedAppStateKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
     @State private var appState = AppState()
 
@@ -17,6 +30,7 @@ struct ContentView: View {
             }
         }
         .environment(appState)
+        .focusedSceneValue(\.appState, appState)
         .preferredColorScheme(appState.palette.isDark ? .dark : .light)
     }
 }

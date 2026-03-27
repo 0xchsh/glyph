@@ -64,11 +64,8 @@ struct FileTreePanel: View {
         let palette = appState.palette
 
         VStack(spacing: 0) {
-            // ── Projects toolbar (sits in titlebar zone) ───────────────
+            // ── Projects toolbar ───────────────────────────────────────
             HStack(spacing: 4) {
-                // Traffic light offset — 74pt clearance for the 3 buttons
-                Spacer().frame(width: 74)
-
                 Text("Projects")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(palette.primaryText.opacity(0.85))
@@ -125,6 +122,7 @@ struct FileTreePanel: View {
                     .padding(.top, 8)
                     .padding(.bottom, 16)
             }
+            .scrollIndicators(.hidden)
         }
         .background(palette.sidebarBackground)
         .onChange(of: appState.selectedProject, initial: true) { _, project in

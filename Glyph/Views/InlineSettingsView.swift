@@ -67,6 +67,7 @@ struct InlineSettingsView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 40)
             }
+            .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(palette.appBackground)
         }

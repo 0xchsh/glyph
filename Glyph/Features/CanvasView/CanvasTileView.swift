@@ -37,9 +37,7 @@ struct CanvasTileView: View {
                 // Loading shimmer
                 ZStack {
                     Color.clear
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .frame(width: 20, height: 20)
+                    Dots3Spinner(size: 14, color: .secondary)
                 }
             }
 

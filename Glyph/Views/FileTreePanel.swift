@@ -310,7 +310,7 @@ struct FileTreePanel: View {
     private func routesSection(palette: ColorPalette) -> some View {
         if appState.isDiscoveringRoutes {
             HStack(spacing: 8) {
-                ProgressView().scaleEffect(0.5).frame(width: 16, height: 16)
+                Dots3Spinner(size: 12, color: palette.secondaryText.opacity(0.5))
                 Text("Scanning…")
                     .font(.system(size: 12))
                     .foregroundStyle(palette.secondaryText.opacity(0.4))
@@ -678,10 +678,8 @@ private struct SidebarRow: View {
                         .frame(width: 6, height: 6)
                         .padding(.trailing, 4)
                 case .busy, .crashed:
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .frame(width: 16, height: 16)
-                        .padding(.trailing, 2)
+                    Dots3Spinner(size: 12, color: palette.secondaryText.opacity(0.5))
+                        .padding(.trailing, 4)
                 case .none:
                     EmptyView()
                 }

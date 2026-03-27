@@ -276,8 +276,7 @@ struct CanvasView: View {
     @ViewBuilder
     private func loadingView(palette: ColorPalette) -> some View {
         VStack(spacing: 12) {
-            ProgressView()
-                .scaleEffect(0.75)
+            Dots3Spinner(size: 18, color: palette.secondaryText.opacity(0.5))
             Text("Discovering routes…")
                 .font(.system(size: 13))
                 .foregroundStyle(palette.secondaryText.opacity(0.4))

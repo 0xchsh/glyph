@@ -24,6 +24,7 @@
 		8D9AAAEF3EAC9306B540BD9F /* GlyphApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C515BA3E2EAE26E191DB91D3 /* GlyphApp.swift */; };
 		92CD940124429A44A71CDFAE /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4127A06BBF81FE6A6D6FEFEE /* Highlightr */; };
 		952C5E01C3837144097E8408 /* PrettyCodeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810A7A8C1153521895D35339 /* PrettyCodeEditorView.swift */; };
+		A2FAB72A514B9AB30FAE05C8 /* Dots3Spinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44BC7CC40BA9521A3280BA /* Dots3Spinner.swift */; };
 		A3F3A7AD39F9615E288AB333 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DCD4079FCB2BE9AFAE3813B /* AppState.swift */; };
 		A4C447271DC6361CFB240877 /* NextJSAppRouterAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A0FC92FB2177FF2536DE1E /* NextJSAppRouterAdapter.swift */; };
 		B5BC6CA73D5014E8368B6384 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 869A843B8E1093B928FFC492 /* Assets.xcassets */; };
@@ -46,6 +47,7 @@
 		398347D38BE194B7DD73B70B /* CenterPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CenterPanel.swift; sourceTree = "<group>"; };
 		49E1B27F2D18E06379F357DB /* MainLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainLayoutView.swift; sourceTree = "<group>"; };
 		4F6739B5A39E3B1F39A96BC3 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		5B44BC7CC40BA9521A3280BA /* Dots3Spinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dots3Spinner.swift; sourceTree = "<group>"; };
 		648BB67388BD974CC9E71BD2 /* MarkdownEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownEditorView.swift; sourceTree = "<group>"; };
 		6CA5A2B773B9F2C00B179573 /* SnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotService.swift; sourceTree = "<group>"; };
 		6DD1E97180455DC859A5A532 /* NextJSPagesRouterAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextJSPagesRouterAdapter.swift; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				C3A83D34AD2DE0020702B6BB /* BrowserPanel.swift */,
 				398347D38BE194B7DD73B70B /* CenterPanel.swift */,
 				EB10F78BBFC31DF6F8980076 /* CodeViewerPanel.swift */,
+				5B44BC7CC40BA9521A3280BA /* Dots3Spinner.swift */,
 				36A01D46E606B26691FB6219 /* FileTreePanel.swift */,
 				49E1B27F2D18E06379F357DB /* MainLayoutView.swift */,
 				648BB67388BD974CC9E71BD2 /* MarkdownEditorView.swift */,
@@ -274,6 +277,7 @@
 				68E6F6355B94FF65ECB5586A /* CodeViewerPanel.swift in Sources */,
 				83ACBA2668DAECCE45120E82 /* ColorPalette.swift in Sources */,
 				1EEDDE384F8ACF68095ACC9B /* ContentView.swift in Sources */,
+				A2FAB72A514B9AB30FAE05C8 /* Dots3Spinner.swift in Sources */,
 				BC8F5A9E2DF832C6A0B29003 /* FileItem.swift in Sources */,
 				B6C8E61E0DB2310B7A0D9B6F /* FileTreePanel.swift in Sources */,
 				FA36C6A0192943DD709BFE12 /* FrameworkDetector.swift in Sources */,
@@ -498,7 +502,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		88CB6FF94BC1C5CC7B6C6F7F /* XCRemoteSwiftPackageReference "Highlightr" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/helje5/Highlightr";
+			repositoryURL = "https://github.com/ZeeZide/Highlightr.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 3.0.0;

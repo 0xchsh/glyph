@@ -35,6 +35,7 @@ struct BrowserPanel: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(appState.browserURL == nil)
+                .help("Go back")
 
                 // Editable URL bar
                 HStack(spacing: 6) {
@@ -68,6 +69,7 @@ struct BrowserPanel: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(appState.browserURL == nil)
+                .help("Reload page")
             }
             .padding(.horizontal, 12)
             .frame(height: panelToolbarHeight)

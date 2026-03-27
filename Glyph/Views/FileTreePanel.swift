@@ -45,11 +45,11 @@ final class DirectoryWatcher {
 
 struct FileTreePanel: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openSettings) private var openSettings
     @State private var fileItems: [FileItem] = []
     @State private var expandedFolders: Set<URL> = []
     @State private var watcher = DirectoryWatcher()
     @State private var isNewProjectPresented = false
-    @State private var newProjectName = ""
 
     // Rename dialog
     @State private var renamingItem: FileItem? = nil
@@ -73,7 +73,6 @@ struct FileTreePanel: View {
                     .tracking(0.8)
                 Spacer()
                 Button {
-                    newProjectName = ""
                     isNewProjectPresented = true
                 } label: {
                     Image(systemName: "plus")
@@ -83,6 +82,31 @@ struct FileTreePanel: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help("New project")
+
+                Button {
+                    openExistingFolder()
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(palette.secondaryText)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Open folder")
+
+                Button {
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(palette.secondaryText)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Settings")
             }
             .padding(.horizontal, 12)
             .frame(height: panelToolbarHeight)
@@ -125,8 +149,8 @@ struct FileTreePanel: View {
         }
         // New project sheet
         .sheet(isPresented: $isNewProjectPresented) {
-            NewProjectSheet(isPresented: $isNewProjectPresented, projectName: $newProjectName) {
-                try appState.createProject(name: newProjectName)
+            NewProjectSheet(isPresented: $isNewProjectPresented) { name, path in
+                try appState.createProject(name: name, path: path)
             }
             .environment(appState)
         }
@@ -151,18 +175,19 @@ struct FileTreePanel: View {
                         palette: palette,
                         action: { appState.selectedProject = project },
                         status: appState.projectStatus(for: project.url),
-                        onRefresh: { appState.refreshProject(project.url) }
+                        onRefresh: { appState.refreshProject(project.url) },
+                        onRemove: { appState.removeProject(project.url) }
                     )
                 }
             }
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 8)
 
             // Files
             SidebarSectionHeader(title: "Files", palette: palette)
             fileSection(palette: palette)
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 8)
 
             // Ports
             SidebarSectionHeader(title: "Ports", palette: palette)
@@ -225,6 +250,18 @@ struct FileTreePanel: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 5)
+    }
+
+    private func openExistingFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = false
+        panel.prompt = "Open"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            appState.addExistingFolder(url)
+        }
     }
 
     private func loadFiles() {
@@ -441,8 +478,8 @@ private struct SidebarSectionHeader<Trailing: View>: View {
             trailing()
         }
         .padding(.horizontal, 12)
-        .padding(.top, 4)
-        .padding(.bottom, 2)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
     }
 }
 
@@ -462,14 +499,15 @@ private struct SidebarRow: View {
     let action: () -> Void
     var status: TerminalStatus? = nil
     var onRefresh: (() -> Void)? = nil
+    var onRemove: (() -> Void)? = nil
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText)
-                    .frame(width: 22, alignment: .center)
+                    .font(.system(size: 14))
+                    .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText.opacity(0.7))
+                    .frame(width: 18, alignment: .center)
 
                 Text(label)
                     .font(.system(size: 13, weight: isSelected ? .medium : .regular))
@@ -495,7 +533,7 @@ private struct SidebarRow: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
             .background(
                 Group {
@@ -505,7 +543,7 @@ private struct SidebarRow: View {
                     }
                 }
             )
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -513,64 +551,241 @@ private struct SidebarRow: View {
             if let onRefresh {
                 Button("Refresh") { onRefresh() }
             }
+            if let onRemove {
+                Button("Remove from Sidebar") { onRemove() }
+            }
         }
     }
 }
 
 // MARK: - NewProjectSheet
 
+private struct ProjectTemplate: Identifiable {
+    let id = UUID()
+    let icon: String          // SF Symbol name
+    let name: String
+    let description: String
+    let isNew: Bool
+}
+
+private let projectTemplates: [ProjectTemplate] = [
+    ProjectTemplate(icon: "doc.badge.plus", name: "Empty", description: "Start from scratch", isNew: false),
+    ProjectTemplate(icon: "swift", name: "SwiftUI", description: "macOS / iOS app", isNew: false),
+    ProjectTemplate(icon: "globe", name: "Next.js", description: "TS, Tailwind, App Router", isNew: true),
+]
+
 private struct NewProjectSheet: View {
     @Binding var isPresented: Bool
-    @Binding var projectName: String
     @Environment(AppState.self) private var appState
-    let onCreate: () throws -> Void
+    let onCreate: (String, URL) throws -> Void
 
+    @State private var projectName = ""
+    @State private var projectPath = ""
     @State private var errorMessage: String?
+    @State private var selectedTemplate: UUID? = projectTemplates.first?.id
 
     var body: some View {
         let palette = appState.palette
+        let canCreate = !projectPath.trimmingCharacters(in: .whitespaces).isEmpty
+            && !projectName.trimmingCharacters(in: .whitespaces).isEmpty
 
-        VStack(alignment: .leading, spacing: 20) {
-            Text("New Project")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(palette.primaryText)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Quick start")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(palette.primaryText)
+                Text("Glyph will create a new project folder for you.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(palette.secondaryText)
+            }
+            .padding(.bottom, 24)
 
-            TextField("project-name", text: $projectName)
-                .textFieldStyle(.plain)
-                .font(.system(size: 14, design: .monospaced))
-                .padding(10)
-                .background(palette.appBackground, in: RoundedRectangle(cornerRadius: 8))
-                .foregroundStyle(palette.primaryText)
-                .onSubmit { submit() }
+            // Name field
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Name")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(palette.secondaryText)
+                TextField("my-project", text: $projectName)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13, design: .monospaced))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(palette.appBackground, in: RoundedRectangle(cornerRadius: 7))
+                    .foregroundStyle(palette.primaryText)
+                    .onSubmit { submit() }
+            }
+            .padding(.bottom, 16)
+
+            // Location field
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Location")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(palette.secondaryText)
+                HStack(spacing: 8) {
+                    TextField("/path/to/project", text: $projectPath)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13, design: .monospaced))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(palette.appBackground, in: RoundedRectangle(cornerRadius: 7))
+                        .foregroundStyle(palette.primaryText)
+                        .onSubmit { submit() }
+                    Button {
+                        browsePath(palette: palette)
+                    } label: {
+                        Text("Browse...")
+                            .font(.system(size: 13))
+                            .foregroundStyle(palette.primaryText)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(palette.appBackground, in: RoundedRectangle(cornerRadius: 7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Choose folder")
+                }
+            }
+            .padding(.bottom, 20)
+
+            // Template picker
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Template")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(palette.secondaryText)
+                HStack(spacing: 10) {
+                    ForEach(projectTemplates) { template in
+                        TemplateCard(
+                            template: template,
+                            isSelected: selectedTemplate == template.id,
+                            palette: palette
+                        )
+                        .onTapGesture { selectedTemplate = template.id }
+                    }
+                    Spacer()
+                }
+            }
+            .padding(.bottom, 24)
 
             if let error = errorMessage {
                 Text(error)
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
+                    .padding(.bottom, 12)
             }
 
+            // Footer
             HStack {
                 Spacer()
-                Button("Cancel") { isPresented = false }
-                    .keyboardShortcut(.cancelAction)
                 Button("Create") { submit() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(projectName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(!canCreate)
+                    .buttonStyle(CreateButtonStyle(palette: palette, isEnabled: canCreate))
             }
         }
         .padding(24)
-        .frame(width: 320)
+        .frame(width: 500)
         .background(palette.panelBackground)
     }
 
+    private func browsePath(palette: ColorPalette) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Select"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            projectPath = url.path
+        }
+    }
+
     private func submit() {
+        let path = projectPath.trimmingCharacters(in: .whitespaces)
         let name = projectName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
+        guard !path.isEmpty, !name.isEmpty else { return }
+        let url = URL(fileURLWithPath: path).appendingPathComponent(name)
         do {
-            try onCreate()
+            try onCreate(name, url)
             isPresented = false
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+private struct TemplateCard: View {
+    let template: ProjectTemplate
+    let isSelected: Bool
+    let palette: ColorPalette
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(palette.panelBackground)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: template.icon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(palette.primaryText)
+                }
+                Text(template.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(palette.primaryText)
+                Text(template.description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(palette.secondaryText)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 130, height: 110)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected
+                          ? (palette.isDark ? Color(white: 0.22) : Color(white: 0.88))
+                          : palette.appBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(
+                        isSelected ? palette.accent.opacity(0.6) : Color.clear,
+                        lineWidth: 1.5
+                    )
+            )
+
+            if template.isNew {
+                Text("NEW")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 4))
+                    .offset(x: -6, y: 6)
+            }
+        }
+    }
+}
+
+private struct CreateButtonStyle: ButtonStyle {
+    let palette: ColorPalette
+    let isEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 8) {
+            configuration.label
+                .font(.system(size: 13, weight: .medium))
+            Text("⌘↩")
+                .font(.system(size: 11))
+                .opacity(0.6)
+        }
+        .foregroundStyle(palette.isDark ? Color.black : Color.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isEnabled
+                      ? (palette.isDark ? Color.white : Color.black)
+                      : (palette.isDark ? Color(white: 0.4) : Color(white: 0.6)))
+        )
+        .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }

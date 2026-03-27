@@ -117,54 +117,62 @@ struct BrowserPanel: View {
                     let detectedPort = appState.port(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
                     if let port = detectedPort {
                         // Port is running — show it as a launch button
-                        VStack(spacing: 20) {
-                            VStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.green.opacity(0.15))
-                                    .frame(width: 48, height: 48)
-                                    .overlay(
-                                        Image(systemName: "circle.fill")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(Color.green)
-                                    )
-                                Text("Dev server running")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(palette.secondaryText.opacity(0.6))
+                        VStack(spacing: 16) {
+                            Circle()
+                                .stroke(palette.secondaryText.opacity(0.12), lineWidth: 1.5)
+                                .frame(width: 52, height: 52)
+                                .overlay(
+                                    Image(systemName: "globe")
+                                        .font(.system(size: 22, weight: .light))
+                                        .foregroundStyle(palette.secondaryText.opacity(0.45))
+                                )
+                            VStack(spacing: 5) {
+                                Text("Browser")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(palette.primaryText.opacity(0.75))
+                                Text("Dev server detected at \(port.absoluteString)")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(palette.secondaryText.opacity(0.45))
+                                    .multilineTextAlignment(.center)
                             }
                             Button {
                                 appState.browserURL = port
                             } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.up.right.square")
-                                        .font(.system(size: 12))
-                                    Text(port.absoluteString)
-                                        .font(.system(size: 13, weight: .medium, design: .monospaced))
-                                }
-                                .foregroundStyle(palette.isDark ? Color.black : Color.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 9)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(palette.isDark ? Color.white : Color.black)
-                                )
+                                Text("Open \(port.absoluteString)")
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(palette.isDark ? Color.black : Color.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 7)
+                                            .fill(palette.isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
+                                    )
                             }
                             .buttonStyle(.plain)
                         }
+                        .frame(maxWidth: 320)
                     } else {
-                        // No port detected yet
-                        VStack(spacing: 6) {
-                            Image(systemName: "display")
-                                .font(.system(size: 36))
-                                .foregroundStyle(palette.secondaryText.opacity(0.2))
-                            Text("Waiting for dev server")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(palette.secondaryText.opacity(0.6))
-                            Text("Start a server in the terminal — detected ports will appear here.")
-                                .font(.system(size: 12))
-                                .foregroundStyle(palette.secondaryText.opacity(0.35))
-                                .multilineTextAlignment(.center)
+                        // Default empty state
+                        VStack(spacing: 16) {
+                            Circle()
+                                .stroke(palette.secondaryText.opacity(0.12), lineWidth: 1.5)
+                                .frame(width: 52, height: 52)
+                                .overlay(
+                                    Image(systemName: "globe")
+                                        .font(.system(size: 22, weight: .light))
+                                        .foregroundStyle(palette.secondaryText.opacity(0.45))
+                                )
+                            VStack(spacing: 5) {
+                                Text("Browser")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(palette.primaryText.opacity(0.75))
+                                Text("Enter a URL above, or start a dev server\nand the detected port will appear here.")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(palette.secondaryText.opacity(0.45))
+                                    .multilineTextAlignment(.center)
+                            }
                         }
-                        .frame(maxWidth: 300)
+                        .frame(maxWidth: 320)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -200,6 +208,15 @@ struct WebViewWrapper: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
+    private static func hideScrollIndicators(in view: NSView) {
+        if let sv = view as? NSScrollView {
+            sv.hasVerticalScroller = false
+            sv.hasHorizontalScroller = false
+            sv.autohidesScrollers = false
+        }
+        for sub in view.subviews { hideScrollIndicators(in: sub) }
+    }
+
     func makeNSView(context: Context) -> NSView {
         let config = WKWebViewConfiguration()
         // Allow JS (required for React / Next.js apps)
@@ -223,10 +240,9 @@ struct WebViewWrapper: NSViewRepresentable {
         coordinator.onLoadStarted = onLoadStarted
         coordinator.onLoadProgress = onLoadProgress
         coordinator.onLoadFinished = onLoadFinished
-        // Hide native scroll indicators
-        if let sv = webView.enclosingScrollView {
-            sv.hasVerticalScroller = false
-            sv.hasHorizontalScroller = false
+        // Hide scroll indicators inside WKWebView's internal NSScrollView
+        DispatchQueue.main.async {
+            Self.hideScrollIndicators(in: webView)
         }
         // Observe estimatedProgress for the progress bar
         coordinator.progressObservation = webView.observe(\.estimatedProgress, options: [.new]) { wv, _ in

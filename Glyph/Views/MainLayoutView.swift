@@ -10,28 +10,39 @@ let panelToolbarHeight: CGFloat = 38
 
 struct MainLayoutView: View {
     @Environment(AppState.self) private var appState
-    @State private var splitFraction: CGFloat = 0.5
+    @State private var centerSplitFraction: CGFloat = 0.5
+    @State private var sidebarWidth: CGFloat = 220
 
     var body: some View {
         let palette = appState.palette
 
-        HSplitView {
-            FileTreePanel()
-                .frame(minWidth: 160, idealWidth: 220, maxWidth: 320)
+        GeometryReader { geo in
+            let W = geo.size.width
+            let clampedSidebar = min(max(sidebarWidth, 160), 320)
 
-            if appState.activeViewMode == .canvas {
-                CanvasView()
-                    .frame(minWidth: 560)
-            } else {
-                CenterTerminalSplit(splitFraction: $splitFraction, palette: palette)
-                    .frame(minWidth: 560)
+            ZStack(alignment: .topLeading) {
+                HStack(spacing: 0) {
+                    FileTreePanel()
+                        .frame(width: clampedSidebar)
+
+                    if appState.activeViewMode == .canvas {
+                        CanvasView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        CenterTerminalSplit(splitFraction: $centerSplitFraction, palette: palette)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+
+                // Sidebar divider hit area
+                SidebarDivider(sidebarWidth: $sidebarWidth, totalWidth: W)
+                    .offset(x: clampedSidebar - 12)
             }
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(palette.appBackground)
         .onAppear { appState.scanForProjects() }
         .overlay {
-            // Cmd+ / Cmd- font size — capture via commands
             Group {
                 Button("") { appState.fontSize = min(appState.fontSize + 1, 24) }
                     .keyboardShortcut("=", modifiers: .command)
@@ -43,6 +54,34 @@ struct MainLayoutView: View {
                     .keyboardShortcut("0", modifiers: .command)
                     .frame(width: 0, height: 0)
             }
+        }
+    }
+}
+
+private struct SidebarDivider: View {
+    @Binding var sidebarWidth: CGFloat
+    let totalWidth: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
+
+    var body: some View {
+        GeometryReader { geo in
+            Rectangle()
+                .fill(Color.white.opacity(0.001))
+                .frame(width: 24, height: geo.size.height)
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { v in
+                            isDragging = true
+                            let newW = sidebarWidth + v.translation.width
+                            sidebarWidth = min(max(newW, 160), 320)
+                        }
+                        .onEnded { _ in isDragging = false }
+                )
+                .onHover { hovering in
+                    isHovering = hovering
+                    if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                }
         }
     }
 }

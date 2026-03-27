@@ -30,6 +30,20 @@ struct MainLayoutView: View {
         .frame(minWidth: 900, minHeight: 600)
         .background(palette.appBackground)
         .onAppear { appState.scanForProjects() }
+        .overlay {
+            // Cmd+ / Cmd- font size — capture via commands
+            Group {
+                Button("") { appState.fontSize = min(appState.fontSize + 1, 24) }
+                    .keyboardShortcut("=", modifiers: .command)
+                    .frame(width: 0, height: 0)
+                Button("") { appState.fontSize = max(appState.fontSize - 1, 9) }
+                    .keyboardShortcut("-", modifiers: .command)
+                    .frame(width: 0, height: 0)
+                Button("") { appState.fontSize = 13 }
+                    .keyboardShortcut("0", modifiers: .command)
+                    .frame(width: 0, height: 0)
+            }
+        }
     }
 }
 
@@ -55,34 +69,34 @@ private struct CenterTerminalSplit: View {
                 HStack(spacing: 0) {
                     CenterPanel()
                         .frame(width: committedX)
-                    palette.border.frame(width: 1)
                     TerminalPanel()
                         .frame(maxWidth: .infinity)
                 }
 
-                // Hover highlight on the divider line
+                // Divider line — only visible on hover/drag
                 if isHovering || isDragging {
-                    palette.accent.opacity(isDragging ? 0.7 : 0.35)
-                        .frame(width: 2, height: H)
-                        .offset(x: committedX - 1)
+                    Color(NSColor.separatorColor)
+                        .opacity(isDragging ? 0.0 : 0.8)
+                        .frame(width: 1, height: H)
+                        .offset(x: committedX)
                         .allowsHitTesting(false)
-                        .animation(.easeInOut(duration: 0.15), value: isHovering)
+                        .animation(.easeInOut(duration: 0.12), value: isHovering)
                 }
 
                 // Ghost line tracks cursor during drag
                 if isDragging {
-                    palette.accent.opacity(0.7)
-                        .frame(width: 2, height: H)
-                        .offset(x: ghostX - 1)
+                    Color(NSColor.separatorColor)
+                        .frame(width: 1, height: H)
+                        .offset(x: ghostX)
                         .allowsHitTesting(false)
                         .animation(nil, value: ghostX)
                 }
 
                 // Drag handle — 24 px hit area centered on the divider
-                Color.clear
+                Rectangle()
+                    .fill(Color.white.opacity(0.001))
                     .frame(width: 24, height: H)
                     .offset(x: committedX - 12)
-                    .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 1)
                             .onChanged { v in

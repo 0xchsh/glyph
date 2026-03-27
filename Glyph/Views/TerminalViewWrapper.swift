@@ -84,6 +84,7 @@ struct TerminalViewWrapper: NSViewRepresentable {
     let backgroundColor: NSColor
     let foregroundColor: NSColor
     let restartID: Int
+    var fontSize: CGFloat = 13
     var onURLDetected: ((String) -> Void)?
     var onStatusChanged: ((TerminalStatus) -> Void)?
     var onProcessTerminated: (() -> Void)?
@@ -154,8 +155,8 @@ struct TerminalViewWrapper: NSViewRepresentable {
             .family: "JetBrains Mono",
             .face: "Regular"
         ])
-        view.font = NSFont(descriptor: descriptor, size: 13)
-            ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        view.font = NSFont(descriptor: descriptor, size: fontSize)
+            ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         view.processDelegate = coordinator
         coordinator.view = view
         coordinator.lastRestartID = restartID

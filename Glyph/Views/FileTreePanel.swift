@@ -65,13 +65,17 @@ struct FileTreePanel: View {
         let palette = appState.palette
 
         VStack(spacing: 0) {
-            // ── Projects toolbar ──────────────────────────────────────
-            HStack {
-                Text("PROJECTS")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(palette.secondaryText)
-                    .tracking(0.8)
+            // ── Projects toolbar (sits in titlebar zone) ───────────────
+            HStack(spacing: 4) {
+                // Traffic light offset — 74pt clearance for the 3 buttons
+                Spacer().frame(width: 74)
+
+                Text("Projects")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(palette.primaryText.opacity(0.85))
+
                 Spacer()
+
                 Menu {
                     Button {
                         openExistingFolder()
@@ -84,10 +88,10 @@ struct FileTreePanel: View {
                         Label("New Project", systemImage: "plus.square")
                     }
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(palette.secondaryText)
-                        .frame(width: 24, height: 24)
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 12))
+                        .foregroundStyle(palette.secondaryText.opacity(0.6))
+                        .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                 }
                 .menuStyle(.borderlessButton)
@@ -99,22 +103,20 @@ struct FileTreePanel: View {
                     openSettings()
                 } label: {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(palette.secondaryText)
-                        .frame(width: 24, height: 24)
+                        .font(.system(size: 12))
+                        .foregroundStyle(palette.secondaryText.opacity(0.6))
+                        .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("Settings")
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
             .frame(height: panelToolbarHeight)
-            .background(palette.panelBackground)
+            .background(palette.sidebarBackground)
 
             // ── View mode switcher ────────────────────────────────────
             viewModeSwitcher(palette: palette)
-
-            palette.border.frame(height: 1)
 
             ScrollView {
                 sidebarContent(palette: palette)
@@ -183,10 +185,9 @@ struct FileTreePanel: View {
                 }
             }
 
-            Spacer().frame(height: 8)
+            Spacer().frame(height: 4)
 
             if appState.activeViewMode == .canvas {
-                // Canvas mode: show discovered routes
                 SidebarSectionHeader(
                     title: "Routes",
                     palette: palette,
@@ -196,7 +197,7 @@ struct FileTreePanel: View {
                         } label: {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 10))
-                                .foregroundStyle(palette.secondaryText.opacity(0.5))
+                                .foregroundStyle(palette.secondaryText.opacity(0.4))
                         }
                         .buttonStyle(.plain)
                         .help("Re-scan routes")
@@ -204,11 +205,10 @@ struct FileTreePanel: View {
                 )
                 routesSection(palette: palette)
             } else {
-                // Editor mode: show files + ports
                 SidebarSectionHeader(title: "Files", palette: palette)
                 fileSection(palette: palette)
 
-                Spacer().frame(height: 8)
+                Spacer().frame(height: 12)
 
                 SidebarSectionHeader(title: "Ports", palette: palette)
                 portsSection(palette: palette)
@@ -277,9 +277,8 @@ struct FileTreePanel: View {
 
     @ViewBuilder
     private func viewModeSwitcher(palette: ColorPalette) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 4) {
             ViewModeButton(
-                icon: "rectangle.split.3x1",
                 label: "Editor",
                 isActive: appState.activeViewMode == .editor,
                 palette: palette
@@ -288,7 +287,6 @@ struct FileTreePanel: View {
             }
 
             ViewModeButton(
-                icon: "square.grid.2x2",
                 label: "Canvas",
                 isActive: appState.activeViewMode == .canvas,
                 palette: palette
@@ -300,10 +298,10 @@ struct FileTreePanel: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(palette.panelBackground)
+        .padding(.vertical, 8)
+        .background(palette.sidebarBackground)
 
-        palette.border.frame(height: 1)
+        Color(NSColor.separatorColor).opacity(0.5).frame(height: 1)
     }
 
     // MARK: - Canvas routes section
@@ -461,7 +459,7 @@ private struct FileTreeNode: View {
                     if item.isDirectory {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText.opacity(active ? 0.6 : 0.45))
+                            .foregroundStyle(palette.secondaryText.opacity(active ? 0.5 : 0.3))
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
                             .frame(width: 14, alignment: .center)
                     } else {
@@ -472,13 +470,13 @@ private struct FileTreeNode: View {
                     Image(systemName: item.isDirectory
                           ? (isExpanded ? "folder.fill" : "folder")
                           : item.sfSymbol())
-                        .font(.system(size: 17))
+                        .font(.system(size: 13))
                         .foregroundStyle(isSelected
-                            ? palette.accent
+                            ? palette.primaryText
                             : (item.isDirectory
-                               ? palette.secondaryText.opacity(isHovered ? 0.9 : 0.7)
-                               : palette.secondaryText.opacity(isHovered ? 0.85 : 0.6)))
-                        .frame(width: 22, alignment: .center)
+                               ? palette.secondaryText.opacity(isHovered ? 0.7 : 0.45)
+                               : palette.secondaryText.opacity(isHovered ? 0.65 : 0.4)))
+                        .frame(width: 18, alignment: .center)
 
                     Spacer().frame(width: 6)
 
@@ -487,7 +485,7 @@ private struct FileTreeNode: View {
                         .font(.system(size: 13, weight: isSelected ? .medium : .regular))
                         .foregroundStyle(isSelected
                             ? palette.primaryText
-                            : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
+                            : palette.secondaryText.opacity(isHovered ? 0.9 : 0.65))
                         .lineLimit(1)
 
                     Spacer()
@@ -495,12 +493,12 @@ private struct FileTreeNode: View {
                     // Dirty dot
                     if isDirty {
                         Circle()
-                            .fill(palette.accent.opacity(0.8))
-                            .frame(width: 6, height: 6)
+                            .fill(palette.secondaryText.opacity(0.5))
+                            .frame(width: 5, height: 5)
                             .padding(.trailing, 10)
                     }
                 }
-                .frame(height: 32)
+                .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 5)
@@ -581,7 +579,6 @@ private struct FileTreeNode: View {
 // MARK: - ViewModeButton
 
 private struct ViewModeButton: View {
-    let icon: String
     let label: String
     let isActive: Bool
     let palette: ColorPalette
@@ -589,21 +586,18 @@ private struct ViewModeButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-            }
-            .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.55))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isActive
-                          ? (palette.isDark ? Color(white: 0.22) : Color(white: 0.0, opacity: 0.08))
-                          : Color.clear)
-            )
+            Text(label)
+                .font(.system(size: 12, weight: isActive ? .semibold : .regular))
+                .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.45))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isActive
+                              ? (palette.isDark ? Color(white: 0.18) : Color(white: 0.0, opacity: 0.08))
+                              : Color.clear)
+                )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -626,13 +620,14 @@ private struct SidebarSectionHeader<Trailing: View>: View {
         HStack {
             Text(title)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(palette.secondaryText.opacity(0.5))
+                .foregroundStyle(palette.secondaryText.opacity(0.35))
+                .tracking(0.2)
             Spacer()
             trailing()
         }
         .padding(.horizontal, 12)
-        .padding(.top, 14)
-        .padding(.bottom, 4)
+        .padding(.top, 10)
+        .padding(.bottom, 2)
     }
 }
 
@@ -660,17 +655,17 @@ private struct SidebarRow: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
-                        : palette.secondaryText.opacity(isHovered ? 0.9 : 0.7))
-                    .frame(width: 18, alignment: .center)
+                        : palette.secondaryText.opacity(isHovered ? 0.7 : 0.45))
+                    .frame(width: 16, alignment: .center)
 
                 Text(label)
                     .font(.system(size: 13, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
-                        : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
+                        : palette.secondaryText.opacity(isHovered ? 0.9 : 0.65))
                     .lineLimit(1)
 
                 Spacer()
@@ -680,7 +675,7 @@ private struct SidebarRow: View {
                 case .idle:
                     Circle()
                         .fill(Color.green)
-                        .frame(width: 7, height: 7)
+                        .frame(width: 6, height: 6)
                         .padding(.trailing, 4)
                 case .busy, .crashed:
                     ProgressView()
@@ -692,7 +687,7 @@ private struct SidebarRow: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .frame(height: 40)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 6)

@@ -5,7 +5,6 @@
 
 import SwiftUI
 import AppKit
-import CodeEditor
 
 struct CodeViewerPanel: View {
     @Environment(AppState.self) private var appState
@@ -19,28 +18,28 @@ struct CodeViewerPanel: View {
         ["md", "mdx"].contains(url.pathExtension.lowercased())
     }
 
-    private var language: CodeEditor.Language {
+    private var highlightrLanguage: String {
         switch url.pathExtension.lowercased() {
-        case "swift":               return .swift
-        case "js":                  return .javascript
-        case "ts":                  return .typescript
-        case "jsx":                 return .javascript
-        case "tsx":                 return .typescript
-        case "json":                return .json
-        case "css", "scss":         return .css
-        case "html":                return .init(rawValue: "html")
-        case "py":                  return .python
-        case "sh", "bash", "zsh":   return .bash
-        case "yaml", "yml":         return .yaml
-        case "xml":                 return .xml
-        default:                    return .init(rawValue: "plaintext")
+        case "swift":               return "swift"
+        case "js", "jsx":           return "javascript"
+        case "ts", "tsx":           return "typescript"
+        case "json":                return "json"
+        case "css":                 return "css"
+        case "scss":                return "scss"
+        case "html":                return "html"
+        case "py":                  return "python"
+        case "sh", "bash", "zsh":   return "bash"
+        case "yaml", "yml":         return "yaml"
+        case "xml":                 return "xml"
+        case "rb":                  return "ruby"
+        case "go":                  return "go"
+        case "rs":                  return "rust"
+        case "kt":                  return "kotlin"
+        case "java":                return "java"
+        case "c", "h":              return "c"
+        case "cpp", "cc", "cxx":    return "cpp"
+        default:                    return "plaintext"
         }
-    }
-
-    private var theme: CodeEditor.ThemeName {
-        appState.palette.isDark
-            ? CodeEditor.ThemeName(rawValue: "atom-one-dark")
-            : CodeEditor.ThemeName(rawValue: "xcode")
     }
 
     private var isDirty: Bool { appState.dirtyFiles.contains(url) }
@@ -118,22 +117,21 @@ struct CodeViewerPanel: View {
                     text: $content,
                     isDark: palette.isDark,
                     backgroundColor: palette.nsBackground,
-                    fontSize: 13
+                    fontSize: appState.fontSize
                 )
                 .onChange(of: content) { _, _ in
                     if isLoaded { appState.markDirty(url) }
                 }
             } else {
-                CodeEditor(
-                    source: $content,
-                    language: language,
-                    theme: theme,
-                    fontSize: .constant(13),
-                    flags: [.editable, .selectable],
-                    indentStyle: .softTab(width: 2),
-                    inset: CGSize(width: 8, height: 8)
+                PrettyCodeEditorView(
+                    text: $content,
+                    language: highlightrLanguage,
+                    isDark: palette.isDark,
+                    backgroundColor: palette.nsBackground,
+                    foregroundColor: palette.isDark
+                        ? NSColor(white: 0.88, alpha: 1)
+                        : NSColor(white: 0.12, alpha: 1)
                 )
-                .background(palette.appBackground)
                 .onChange(of: content) { _, _ in
                     if isLoaded { appState.markDirty(url) }
                 }

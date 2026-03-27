@@ -93,7 +93,7 @@ private final class PageCapture: NSObject, WKNavigationDelegate {
         // Hard timeout — don't wait forever for slow pages
         timeoutTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(12))
-            await self?.takeSnapshot()
+            self?.takeSnapshot()
         }
     }
 
@@ -101,7 +101,7 @@ private final class PageCapture: NSObject, WKNavigationDelegate {
     nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(900))
-            await self?.takeSnapshot()
+            self?.takeSnapshot()
         }
     }
 

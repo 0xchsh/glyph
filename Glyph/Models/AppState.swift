@@ -104,6 +104,7 @@ class AppState {
     var openedFileURLs: [URL] = []
     var activeCenterTab: CenterTab = .preview
     var dirtyFiles: Set<URL> = []
+    var fontSize: CGFloat = 13
 
     // MARK: - Canvas View
     var activeViewMode: ViewMode = .editor

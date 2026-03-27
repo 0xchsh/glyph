@@ -85,7 +85,7 @@ struct TerminalPanel: View {
             .frame(height: panelToolbarHeight)
             .background(palette.panelBackground)
 
-            palette.border.frame(height: 1)
+            Color(NSColor.separatorColor).opacity(0.4).frame(height: 1)
 
             // One TerminalViewWrapper per session, kept alive in a ZStack
             ZStack {
@@ -98,6 +98,7 @@ struct TerminalPanel: View {
                         backgroundColor: palette.nsBackground,
                         foregroundColor: palette.nsForeground,
                         restartID: session.restartID,
+                        fontSize: appState.fontSize,
                         onURLDetected: { urlString in
                             guard let detected = URL(string: urlString) else { return }
                             appState.setPort(detected, for: session.projectURL)

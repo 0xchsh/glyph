@@ -12,6 +12,9 @@ packages:
   CodeEditor:
     url: https://github.com/ZeeZide/CodeEditor.git
     from: "1.0.0"
+  Highlightr:
+    url: https://github.com/ZeeZide/Highlightr.git
+    from: "3.0.0"
 
 targets:
   Glyph:
@@ -29,6 +32,8 @@ targets:
         product: SwiftTerm
       - package: CodeEditor
         product: CodeEditor
+      - package: Highlightr
+        product: Highlightr
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ch.sh.Glyph

@@ -22,6 +22,8 @@
 		83ACBA2668DAECCE45120E82 /* ColorPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD40724DA1E4288AB5817FD5 /* ColorPalette.swift */; };
 		83ACDD577124C058D5F2CC8D /* TerminalViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3307709C1293E2DD5E450FE2 /* TerminalViewWrapper.swift */; };
 		8D9AAAEF3EAC9306B540BD9F /* GlyphApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C515BA3E2EAE26E191DB91D3 /* GlyphApp.swift */; };
+		92CD940124429A44A71CDFAE /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 4127A06BBF81FE6A6D6FEFEE /* Highlightr */; };
+		952C5E01C3837144097E8408 /* PrettyCodeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810A7A8C1153521895D35339 /* PrettyCodeEditorView.swift */; };
 		A3F3A7AD39F9615E288AB333 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DCD4079FCB2BE9AFAE3813B /* AppState.swift */; };
 		A4C447271DC6361CFB240877 /* NextJSAppRouterAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A0FC92FB2177FF2536DE1E /* NextJSAppRouterAdapter.swift */; };
 		B5BC6CA73D5014E8368B6384 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 869A843B8E1093B928FFC492 /* Assets.xcassets */; };
@@ -50,6 +52,7 @@
 		732C72E7C407C23C60EC7315 /* CanvasTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasTileView.swift; sourceTree = "<group>"; };
 		7353F845E6DA22522D1FBE92 /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
 		7D63D8525429087E12F800F0 /* Glyph.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glyph.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		810A7A8C1153521895D35339 /* PrettyCodeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrettyCodeEditorView.swift; sourceTree = "<group>"; };
 		857C7672AD073C89A7E1D81B /* RouteResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteResolver.swift; sourceTree = "<group>"; };
 		869A843B8E1093B928FFC492 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8DA2D23ECBBDEA264F1ECAFA /* ReactRouterAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactRouterAdapter.swift; sourceTree = "<group>"; };
@@ -71,6 +74,7 @@
 			files = (
 				1588411190BC64AE1287C22E /* SwiftTerm in Frameworks */,
 				224B80AF2AD0B32EF35F86AC /* CodeEditor in Frameworks */,
+				92CD940124429A44A71CDFAE /* Highlightr in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +135,7 @@
 				49E1B27F2D18E06379F357DB /* MainLayoutView.swift */,
 				648BB67388BD974CC9E71BD2 /* MarkdownEditorView.swift */,
 				4F6739B5A39E3B1F39A96BC3 /* OnboardingView.swift */,
+				810A7A8C1153521895D35339 /* PrettyCodeEditorView.swift */,
 				D9D08B7F52D0940BB50764D2 /* SettingsView.swift */,
 				3143E90E1427AB4DD5E803E2 /* TerminalPanel.swift */,
 				3307709C1293E2DD5E450FE2 /* TerminalViewWrapper.swift */,
@@ -200,6 +205,7 @@
 			packageProductDependencies = (
 				49B0986122C00BA808C2539D /* SwiftTerm */,
 				293BCAAB1323D420A57A94DE /* CodeEditor */,
+				4127A06BBF81FE6A6D6FEFEE /* Highlightr */,
 			);
 			productName = Glyph;
 			productReference = 7D63D8525429087E12F800F0 /* Glyph.app */;
@@ -232,6 +238,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DA0D5ADFAFB376B3405006D7 /* XCRemoteSwiftPackageReference "CodeEditor" */,
+				88CB6FF94BC1C5CC7B6C6F7F /* XCRemoteSwiftPackageReference "Highlightr" */,
 				95EEA9ABBE0D4F1B167D8FA8 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -276,6 +283,7 @@
 				A4C447271DC6361CFB240877 /* NextJSAppRouterAdapter.swift in Sources */,
 				F65E8A6A56F9798330861380 /* NextJSPagesRouterAdapter.swift in Sources */,
 				38FDE85F233B680CE6C144DA /* OnboardingView.swift in Sources */,
+				952C5E01C3837144097E8408 /* PrettyCodeEditorView.swift in Sources */,
 				71FF8D44C7EE03F2FB70A965 /* ReactRouterAdapter.swift in Sources */,
 				E033573AB34CA84F3EAC0A29 /* RouteResolver.swift in Sources */,
 				2C1DBFB1F90459A41AFB033F /* SettingsView.swift in Sources */,
@@ -488,6 +496,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		88CB6FF94BC1C5CC7B6C6F7F /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/helje5/Highlightr";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
 		95EEA9ABBE0D4F1B167D8FA8 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
@@ -511,6 +527,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DA0D5ADFAFB376B3405006D7 /* XCRemoteSwiftPackageReference "CodeEditor" */;
 			productName = CodeEditor;
+		};
+		4127A06BBF81FE6A6D6FEFEE /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88CB6FF94BC1C5CC7B6C6F7F /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
 		};
 		49B0986122C00BA808C2539D /* SwiftTerm */ = {
 			isa = XCSwiftPackageProductDependency;

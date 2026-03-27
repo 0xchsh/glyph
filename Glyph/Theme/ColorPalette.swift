@@ -40,15 +40,15 @@ struct ColorPalette {
         }
     }
 
-    // Near-black, pink accent
+    // Near-black, neutral accent
     static let obsidian = ColorPalette(
         appBackground:     Color(red: 0.051, green: 0.051, blue: 0.055),
         panelBackground:   Color(red: 0.082, green: 0.082, blue: 0.090),
         sidebarBackground: Color(red: 0.063, green: 0.063, blue: 0.071),
-        accent:            Color(red: 1.000, green: 0.220, blue: 0.365),
-        border:            Color(red: 0.165, green: 0.165, blue: 0.180),
-        primaryText:       Color(red: 0.918, green: 0.918, blue: 0.941),
-        secondaryText:     Color(red: 0.420, green: 0.420, blue: 0.455),
+        accent:            Color(white: 0.78),
+        border:            Color(white: 0.14),
+        primaryText:       Color(white: 0.93),
+        secondaryText:     Color(white: 0.40),
         isDark: true
     )
 

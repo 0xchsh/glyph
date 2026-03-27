@@ -200,7 +200,7 @@ struct WebViewWrapper: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    func makeNSView(context: Context) -> WKWebView {
+    func makeNSView(context: Context) -> NSView {
         let config = WKWebViewConfiguration()
         // Allow JS (required for React / Next.js apps)
         let pagePrefs = WKWebpagePreferences()
@@ -209,6 +209,8 @@ struct WebViewWrapper: NSViewRepresentable {
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
         // Allow http:// localhost loads
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        // Enable Safari Web Inspector / DevTools
+        config.preferences.setValue(true, forKey: "developerExtrasEnabled")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
@@ -233,17 +235,31 @@ struct WebViewWrapper: NSViewRepresentable {
             }
         }
         webView.load(URLRequest(url: url))
+
+        // Wrap in a container so AutoLayout handles resizing and we can
+        // dispatch a JS resize event whenever the container bounds change.
+        let container = WebContainerView()
+        container.webView = webView
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: container.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+
         DispatchQueue.main.async { onCoordinatorReady?(coordinator) }
-        return webView
+        return container
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
+    func updateNSView(_ container: NSView, context: Context) {
         context.coordinator.onLoadStarted = onLoadStarted
         context.coordinator.onLoadProgress = onLoadProgress
         context.coordinator.onLoadFinished = onLoadFinished
         guard context.coordinator.loadedURL != url else { return }
         context.coordinator.loadedURL = url
-        webView.load(URLRequest(url: url))
+        context.coordinator.webView?.load(URLRequest(url: url))
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -266,5 +282,22 @@ struct WebViewWrapper: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             DispatchQueue.main.async { self.onLoadFinished?() }
         }
+    }
+}
+
+// MARK: - WebContainerView
+
+/// An NSView wrapper that dispatches a JS resize event whenever its bounds
+/// change, so React / Vite / Next.js apps reflow to fit the new panel size.
+private final class WebContainerView: NSView {
+    weak var webView: WKWebView?
+    private var lastSize: CGSize = .zero
+
+    override func layout() {
+        super.layout()
+        let newSize = bounds.size
+        guard newSize != lastSize, newSize.width > 0, newSize.height > 0 else { return }
+        lastSize = newSize
+        webView?.evaluateJavaScript("window.dispatchEvent(new Event('resize'));", completionHandler: nil)
     }
 }

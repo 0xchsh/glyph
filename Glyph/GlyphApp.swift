@@ -15,7 +15,6 @@ struct GlyphApp: App {
             ContentView()
                 .environment(appState)
                 .background(WindowConfigurator())
-                .ignoresSafeArea(.all, edges: .top)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified(showsTitle: false))

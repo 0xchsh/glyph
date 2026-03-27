@@ -21,6 +21,15 @@ struct MainLayoutView: View {
             let clampedSidebar = min(max(sidebarWidth, 160), 320)
 
             ZStack(alignment: .topLeading) {
+                // Background colors extend behind the transparent titlebar
+                HStack(spacing: 0) {
+                    palette.sidebarBackground
+                        .frame(width: clampedSidebar)
+                    palette.appBackground
+                        .frame(maxWidth: .infinity)
+                }
+                .ignoresSafeArea(.all, edges: .top)
+
                 HStack(spacing: 0) {
                     FileTreePanel()
                         .frame(width: clampedSidebar)
@@ -40,7 +49,6 @@ struct MainLayoutView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 600)
-        .background(palette.appBackground)
         .onAppear { appState.scanForProjects() }
         .overlay {
             Group {

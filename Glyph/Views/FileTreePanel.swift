@@ -64,11 +64,11 @@ struct FileTreePanel: View {
         let palette = appState.palette
 
         VStack(spacing: 0) {
-            // ── Projects toolbar ───────────────────────────────────────
-            HStack(spacing: 4) {
+            // ── Projects header ────────────────────────────────────────
+            HStack(alignment: .center, spacing: 4) {
                 Text("Projects")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(palette.primaryText.opacity(0.85))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(palette.primaryText)
 
                 Spacer()
 
@@ -86,7 +86,7 @@ struct FileTreePanel: View {
                 } label: {
                     Image(systemName: "folder.badge.plus")
                         .font(.system(size: 12))
-                        .foregroundStyle(palette.secondaryText.opacity(0.6))
+                        .foregroundStyle(palette.secondaryText.opacity(0.55))
                         .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                 }
@@ -103,19 +103,17 @@ struct FileTreePanel: View {
                         .font(.system(size: 12))
                         .foregroundStyle(appState.activeCenterTab == .settings
                             ? palette.primaryText
-                            : palette.secondaryText.opacity(0.6))
+                            : palette.secondaryText.opacity(0.55))
                         .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("Settings")
             }
-            .padding(.horizontal, 8)
-            .frame(height: panelToolbarHeight)
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
             .background(palette.sidebarBackground)
-
-            // ── View mode switcher ────────────────────────────────────
-            viewModeSwitcher(palette: palette)
 
             ScrollView {
                 sidebarContent(palette: palette)
@@ -180,6 +178,7 @@ struct FileTreePanel: View {
                         palette: palette,
                         action: { appState.selectedProject = project },
                         status: appState.projectStatus(for: project.url),
+                        largeIcon: true,
                         onRefresh: { appState.refreshProject(project.url) },
                         onRemove: { appState.removeProject(project.url) }
                     )
@@ -646,6 +645,7 @@ private struct SidebarRow: View {
     let palette: ColorPalette
     let action: () -> Void
     var status: TerminalStatus? = nil
+    var largeIcon: Bool = false
     var onRefresh: (() -> Void)? = nil
     var onRemove: (() -> Void)? = nil
 
@@ -653,26 +653,37 @@ private struct SidebarRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                if let favicon {
-                    Image(nsImage: favicon)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFit()
-                        .frame(width: 14, height: 14)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .frame(width: 16, alignment: .center)
+            HStack(spacing: largeIcon ? 10 : 8) {
+                if largeIcon {
+                    // Large project icon: favicon or letter avatar
+                    if let favicon {
+                        Image(nsImage: favicon)
+                            .resizable()
+                            .interpolation(.high)
+                            .scaledToFit()
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(palette.isDark ? Color(white: 0.22) : Color(white: 0.88))
+                            .frame(width: 36, height: 36)
+                            .overlay(
+                                Text(String(label.prefix(1)).uppercased())
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(palette.secondaryText.opacity(0.7))
+                            )
+                    }
                 } else {
-                Image(systemName: icon)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isSelected
-                        ? palette.primaryText
-                        : palette.secondaryText.opacity(isHovered ? 0.95 : 0.7))
-                    .frame(width: 16, alignment: .center)
+                    Image(systemName: icon)
+                        .font(.system(size: 13))
+                        .foregroundStyle(isSelected
+                            ? palette.primaryText
+                            : palette.secondaryText.opacity(isHovered ? 0.95 : 0.7))
+                        .frame(width: 16, alignment: .center)
                 }
 
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                    .font(.system(size: largeIcon ? 13 : 13, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
                         : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
@@ -695,7 +706,7 @@ private struct SidebarRow: View {
                 }
             }
             .padding(.horizontal, 10)
-            .frame(height: 40)
+            .frame(height: largeIcon ? 52 : 40)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 6)

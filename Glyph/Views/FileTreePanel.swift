@@ -174,6 +174,7 @@ struct FileTreePanel: View {
                 ForEach(appState.projects) { project in
                     SidebarRow(
                         icon: "folder",
+                        favicon: appState.faviconByProject[project.url],
                         label: project.name,
                         isSelected: appState.selectedProject == project,
                         palette: palette,
@@ -639,6 +640,7 @@ extension SidebarSectionHeader where Trailing == EmptyView {
 
 private struct SidebarRow: View {
     let icon: String
+    var favicon: NSImage? = nil
     let label: String
     let isSelected: Bool
     let palette: ColorPalette
@@ -652,12 +654,22 @@ private struct SidebarRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
+                if let favicon {
+                    Image(nsImage: favicon)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: 14, height: 14)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .frame(width: 16, alignment: .center)
+                } else {
                 Image(systemName: icon)
                     .font(.system(size: 13))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
                         : palette.secondaryText.opacity(isHovered ? 0.95 : 0.7))
                     .frame(width: 16, alignment: .center)
+                }
 
                 Text(label)
                     .font(.system(size: 13, weight: isSelected ? .medium : .regular))

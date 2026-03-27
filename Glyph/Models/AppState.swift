@@ -118,6 +118,7 @@ class AppState {
     private var sessionsByProject: [URL: [TerminalSession]] = [:]
     private var activeSessionIDByProject: [URL: UUID] = [:]
     private var portByProject: [URL: URL] = [:]
+    var faviconByProject: [URL: NSImage] = [:]
 
     var defaultPreset: AgentPreset {
         AgentPreset.defaults.first(where: { $0.id == defaultPresetID }) ?? AgentPreset.defaults[0]
@@ -235,6 +236,38 @@ class AppState {
             snapshotService.clearSnapshots()
             snapshotService.captureAll(routes: discoveredRoutes, serverURL: url)
         }
+        fetchFavicon(serverURL: url, for: projectURL)
+    }
+
+    private func fetchFavicon(serverURL: URL, for projectURL: URL) {
+        // Try /favicon.ico first, then fall back to parsing <link rel="icon">
+        let icoURL = serverURL.appendingPathComponent("favicon.ico")
+        URLSession.shared.dataTask(with: icoURL) { [weak self] data, response, _ in
+            if let data, !data.isEmpty,
+               let http = response as? HTTPURLResponse, http.statusCode == 200,
+               let img = NSImage(data: data) {
+                DispatchQueue.main.async { self?.faviconByProject[projectURL] = img }
+                return
+            }
+            // Fall back: fetch root HTML and look for <link rel="icon" href="...">
+            URLSession.shared.dataTask(with: serverURL) { [weak self] data, _, _ in
+                guard let data,
+                      let html = String(data: data, encoding: .utf8) else { return }
+                let pattern = #"<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']"#
+                guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+                      let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+                      let hrefRange = Range(match.range(at: 1), in: html) else { return }
+                var href = String(html[hrefRange])
+                if href.hasPrefix("//") { href = "https:" + href }
+                else if href.hasPrefix("/") { href = serverURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + href }
+                guard let faviconURL = URL(string: href) else { return }
+                URLSession.shared.dataTask(with: faviconURL) { [weak self] data, _, _ in
+                    if let data, !data.isEmpty, let img = NSImage(data: data) {
+                        DispatchQueue.main.async { self?.faviconByProject[projectURL] = img }
+                    }
+                }.resume()
+            }.resume()
+        }.resume()
     }
 
     // MARK: - Canvas route discovery

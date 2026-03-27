@@ -422,6 +422,8 @@ private struct FileTreeNode: View {
     let onNewItem: (URL, Bool) -> Void
     let onDelete: (FileItem) -> Void
 
+    @State private var isHovered = false
+
     private var isExpanded: Bool { expandedFolders.contains(item.url) }
     private var isSelected: Bool {
         !item.isDirectory && appState.activeCenterTab == .file(item.url)
@@ -436,6 +438,7 @@ private struct FileTreeNode: View {
 
     var body: some View {
         let palette = appState.palette
+        let active = isSelected || isHovered
 
         VStack(spacing: 0) {
             // Row
@@ -458,7 +461,7 @@ private struct FileTreeNode: View {
                     if item.isDirectory {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText.opacity(0.45))
+                            .foregroundStyle(palette.secondaryText.opacity(active ? 0.6 : 0.45))
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
                             .frame(width: 14, alignment: .center)
                     } else {
@@ -473,8 +476,8 @@ private struct FileTreeNode: View {
                         .foregroundStyle(isSelected
                             ? palette.accent
                             : (item.isDirectory
-                               ? palette.secondaryText.opacity(0.7)
-                               : palette.secondaryText.opacity(0.6)))
+                               ? palette.secondaryText.opacity(isHovered ? 0.9 : 0.7)
+                               : palette.secondaryText.opacity(isHovered ? 0.85 : 0.6)))
                         .frame(width: 22, alignment: .center)
 
                     Spacer().frame(width: 6)
@@ -484,7 +487,7 @@ private struct FileTreeNode: View {
                         .font(.system(size: 13, weight: isSelected ? .medium : .regular))
                         .foregroundStyle(isSelected
                             ? palette.primaryText
-                            : palette.secondaryText.opacity(0.85))
+                            : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
                         .lineLimit(1)
 
                     Spacer()
@@ -500,19 +503,19 @@ private struct FileTreeNode: View {
                 .frame(height: 32)
                 .frame(maxWidth: .infinity)
                 .background(
-                    Group {
-                        if isSelected {
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(palette.isDark
-                                      ? Color(white: 0.22)
-                                      : Color(white: 0.0, opacity: 0.07))
-                                .padding(.horizontal, 6)
-                        }
-                    }
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(isSelected
+                            ? (palette.isDark ? Color(white: 0.22) : Color(white: 0.0, opacity: 0.07))
+                            : isHovered
+                                ? (palette.isDark ? Color(white: 0.16) : Color(white: 0.0, opacity: 0.04))
+                                : Color.clear)
+                        .padding(.horizontal, 6)
+                        .animation(.easeInOut(duration: 0.1), value: isHovered)
                 )
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .onHover { isHovered = $0 }
             .contextMenu { contextMenuItems }
 
             // Children
@@ -651,17 +654,23 @@ private struct SidebarRow: View {
     var onRefresh: (() -> Void)? = nil
     var onRemove: (() -> Void)? = nil
 
+    @State private var isHovered = false
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText.opacity(0.7))
+                    .foregroundStyle(isSelected
+                        ? palette.primaryText
+                        : palette.secondaryText.opacity(isHovered ? 0.9 : 0.7))
                     .frame(width: 18, alignment: .center)
 
                 Text(label)
                     .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                    .foregroundStyle(isSelected ? palette.primaryText : palette.secondaryText.opacity(0.85))
+                    .foregroundStyle(isSelected
+                        ? palette.primaryText
+                        : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
                     .lineLimit(1)
 
                 Spacer()
@@ -686,17 +695,19 @@ private struct SidebarRow: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
             .background(
-                Group {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(palette.isDark ? Color(white: 0.22) : Color(white: 0.0, opacity: 0.07))
-                    }
-                }
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected
+                        ? (palette.isDark ? Color(white: 0.22) : Color(white: 0.0, opacity: 0.07))
+                        : isHovered
+                            ? (palette.isDark ? Color(white: 0.16) : Color(white: 0.0, opacity: 0.04))
+                            : Color.clear)
+                    .animation(.easeInOut(duration: 0.1), value: isHovered)
             )
             .padding(.horizontal, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
         .contextMenu {
             if let onRefresh {
                 Button("Refresh") { onRefresh() }

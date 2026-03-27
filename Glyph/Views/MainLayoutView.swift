@@ -37,52 +37,77 @@ private struct CenterTerminalSplit: View {
     @Binding var splitFraction: CGFloat
     let palette: ColorPalette
 
-    @GestureState private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
+    @State private var isHovering = false
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
-            let totalWidth = geo.size.width - 1 // subtract 1px divider
-            let activeFraction = min(max(splitFraction + dragOffset / totalWidth, 0.2), 0.8)
+            let W = geo.size.width
+            let H = geo.size.height
+            let committedX = W * splitFraction
+            let ghostX = isDragging
+                ? min(max(committedX + dragOffset, W * 0.2), W * 0.8)
+                : committedX
 
-            HStack(spacing: 0) {
-                CenterPanel()
-                    .frame(width: totalWidth * activeFraction)
-
-                divider(totalWidth: totalWidth)
-
-                TerminalPanel()
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func divider(totalWidth: CGFloat) -> some View {
-        let dragGesture = DragGesture(minimumDistance: 2)
-            .updating($dragOffset) { value, state, _ in
-                state = value.translation.width
-            }
-            .onEnded { value in
-                splitFraction = min(max(splitFraction + value.translation.width / totalWidth, 0.2), 0.8)
-            }
-
-        let doubleTapGesture = TapGesture(count: 2)
-            .onEnded {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    splitFraction = 0.5
+            ZStack(alignment: .topLeading) {
+                // Panels never resize during drag — only update on commit
+                HStack(spacing: 0) {
+                    CenterPanel()
+                        .frame(width: committedX)
+                    palette.border.frame(width: 1)
+                    TerminalPanel()
+                        .frame(maxWidth: .infinity)
                 }
-            }
 
-        ZStack {
-            palette.border
-                .frame(width: 1)
-        }
-        .frame(width: 8)
-        .contentShape(Rectangle())
-        .gesture(dragGesture)
-        .simultaneousGesture(doubleTapGesture)
-        .onHover { hovering in
-            if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                // Hover highlight on the divider line
+                if isHovering || isDragging {
+                    palette.accent.opacity(isDragging ? 0.7 : 0.35)
+                        .frame(width: 2, height: H)
+                        .offset(x: committedX - 1)
+                        .allowsHitTesting(false)
+                        .animation(.easeInOut(duration: 0.15), value: isHovering)
+                }
+
+                // Ghost line tracks cursor during drag
+                if isDragging {
+                    palette.accent.opacity(0.7)
+                        .frame(width: 2, height: H)
+                        .offset(x: ghostX - 1)
+                        .allowsHitTesting(false)
+                        .animation(nil, value: ghostX)
+                }
+
+                // Drag handle — 24 px hit area centered on the divider
+                Color.clear
+                    .frame(width: 24, height: H)
+                    .offset(x: committedX - 12)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { v in
+                                isDragging = true
+                                dragOffset = v.translation.width
+                            }
+                            .onEnded { v in
+                                let newFraction = min(max(splitFraction + v.translation.width / W, 0.2), 0.8)
+                                withAnimation(.easeOut(duration: 0.12)) {
+                                    splitFraction = newFraction
+                                }
+                                isDragging = false
+                                dragOffset = 0
+                            }
+                    )
+                    .simultaneousGesture(
+                        TapGesture(count: 2).onEnded {
+                            withAnimation(.easeInOut(duration: 0.2)) { splitFraction = 0.5 }
+                        }
+                    )
+                    .onHover { hovering in
+                        isHovering = hovering
+                        if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+            }
         }
     }
 }

@@ -4,6 +4,47 @@
 //
 
 import SwiftUI
+import AppKit
+
+// MARK: - Scroll/zoom capture
+
+private final class ScrollCaptureNSView: NSView {
+    var onScroll: ((CGFloat, CGFloat) -> Void)?
+    var onZoom: ((CGFloat, CGPoint) -> Void)?
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func scrollWheel(with event: NSEvent) {
+        if event.modifierFlags.contains(.command) {
+            let factor: CGFloat = event.scrollingDeltaY > 0 ? 1.06 : 1.0 / 1.06
+            let loc = convert(event.locationInWindow, from: nil)
+            onZoom?(factor, loc)
+        } else {
+            let dx = event.hasPreciseScrollingDeltas ? event.scrollingDeltaX : event.scrollingDeltaX * 8
+            let dy = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY : event.scrollingDeltaY * 8
+            onScroll?(dx, dy)
+        }
+    }
+}
+
+private struct ScrollCaptureView: NSViewRepresentable {
+    var onScroll: (CGFloat, CGFloat) -> Void
+    var onZoom: (CGFloat, CGPoint) -> Void
+
+    func makeNSView(context: Context) -> ScrollCaptureNSView {
+        let v = ScrollCaptureNSView()
+        v.onScroll = onScroll
+        v.onZoom = onZoom
+        return v
+    }
+
+    func updateNSView(_ v: ScrollCaptureNSView, context: Context) {
+        v.onScroll = onScroll
+        v.onZoom = onZoom
+    }
+}
+
+// MARK: - CanvasView
 
 struct CanvasView: View {
     @Environment(AppState.self) private var appState
@@ -13,6 +54,7 @@ struct CanvasView: View {
     @State private var baseScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var dragBase: CGSize = .zero
+    @State private var canvasSize: CGSize = .zero
 
     private let tileColumns = 4
     private let tileSpacing: CGFloat = 24
@@ -98,6 +140,30 @@ struct CanvasView: View {
             .offset(offset)
             .gesture(panGesture)
             .simultaneousGesture(zoomGesture)
+            .onAppear { canvasSize = geo.size }
+            .onChange(of: geo.size) { _, s in canvasSize = s }
+            .overlay {
+                ScrollCaptureView(
+                    onScroll: { dx, dy in
+                        offset = CGSize(width: offset.width + dx, height: offset.height - dy)
+                        dragBase = offset
+                    },
+                    onZoom: { factor, locInView in
+                        let newScale = min(max(scale * factor, 0.1), 4.0)
+                        let ratio = newScale / scale
+                        // Cursor position relative to canvas center (flip NSView Y axis)
+                        let cx = locInView.x - canvasSize.width / 2
+                        let cy = canvasSize.height / 2 - locInView.y
+                        offset = CGSize(
+                            width: cx * (1 - ratio) + offset.width * ratio,
+                            height: cy * (1 - ratio) + offset.height * ratio
+                        )
+                        dragBase = offset
+                        scale = newScale
+                        baseScale = newScale
+                    }
+                )
+            }
         }
         .clipped()
         .overlay(alignment: .bottomTrailing) {

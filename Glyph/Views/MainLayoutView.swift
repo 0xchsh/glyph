@@ -34,7 +34,10 @@ struct MainLayoutView: View {
                     FileTreePanel()
                         .frame(width: clampedSidebar)
 
-                    if appState.activeViewMode == .canvas {
+                    if appState.selectedProject == nil {
+                        WelcomeView()
+                            .frame(maxWidth: .infinity)
+                    } else if appState.activeViewMode == .canvas {
                         CanvasView()
                             .frame(maxWidth: .infinity)
                     } else {

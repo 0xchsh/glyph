@@ -16,6 +16,7 @@
 		3C30F21345E275468AF75648 /* CenterPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398347D38BE194B7DD73B70B /* CenterPanel.swift */; };
 		3D29248C138402BC47188DE1 /* MainLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49E1B27F2D18E06379F357DB /* MainLayoutView.swift */; };
 		4740A59FAF0209EEBF08BD58 /* CanvasTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732C72E7C407C23C60EC7315 /* CanvasTileView.swift */; };
+		55F1DA7C097D4465029CFD48 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1990F784CDC7841DBBE90AE /* WelcomeView.swift */; };
 		68E6F6355B94FF65ECB5586A /* CodeViewerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB10F78BBFC31DF6F8980076 /* CodeViewerPanel.swift */; };
 		71FF8D44C7EE03F2FB70A965 /* ReactRouterAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA2D23ECBBDEA264F1ECAFA /* ReactRouterAdapter.swift */; };
 		805B96B987D659434750CF26 /* MarkdownEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648BB67388BD974CC9E71BD2 /* MarkdownEditorView.swift */; };
@@ -66,6 +67,7 @@
 		C3A83D34AD2DE0020702B6BB /* BrowserPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserPanel.swift; sourceTree = "<group>"; };
 		C515BA3E2EAE26E191DB91D3 /* GlyphApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphApp.swift; sourceTree = "<group>"; };
 		CD40724DA1E4288AB5817FD5 /* ColorPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPalette.swift; sourceTree = "<group>"; };
+		D1990F784CDC7841DBBE90AE /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		D9D08B7F52D0940BB50764D2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EB10F78BBFC31DF6F8980076 /* CodeViewerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeViewerPanel.swift; sourceTree = "<group>"; };
 		F1F679590985D05BFA714771 /* CanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasView.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 				D9D08B7F52D0940BB50764D2 /* SettingsView.swift */,
 				3143E90E1427AB4DD5E803E2 /* TerminalPanel.swift */,
 				3307709C1293E2DD5E450FE2 /* TerminalViewWrapper.swift */,
+				D1990F784CDC7841DBBE90AE /* WelcomeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -298,6 +301,7 @@
 				F4FA0A37694E57187B3B78B6 /* SnapshotService.swift in Sources */,
 				DA61E218CBEE696EBF3795AF /* TerminalPanel.swift in Sources */,
 				83ACDD577124C058D5F2CC8D /* TerminalViewWrapper.swift in Sources */,
+				55F1DA7C097D4465029CFD48 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

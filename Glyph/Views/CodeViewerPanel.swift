@@ -15,6 +15,10 @@ struct CodeViewerPanel: View {
     @State private var loadError: String?
     @State private var isLoaded = false
 
+    private var isMarkdown: Bool {
+        ["md", "mdx"].contains(url.pathExtension.lowercased())
+    }
+
     private var language: CodeEditor.Language {
         switch url.pathExtension.lowercased() {
         case "swift":               return .swift
@@ -23,7 +27,6 @@ struct CodeViewerPanel: View {
         case "jsx":                 return .javascript
         case "tsx":                 return .typescript
         case "json":                return .json
-        case "md", "mdx":           return .markdown
         case "css", "scss":         return .css
         case "html":                return .init(rawValue: "html")
         case "py":                  return .python
@@ -110,6 +113,16 @@ struct CodeViewerPanel: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if isMarkdown {
+                MarkdownEditorView(
+                    text: $content,
+                    isDark: palette.isDark,
+                    backgroundColor: palette.nsBackground,
+                    fontSize: 13
+                )
+                .onChange(of: content) { _, _ in
+                    if isLoaded { appState.markDirty(url) }
+                }
             } else {
                 CodeEditor(
                     source: $content,

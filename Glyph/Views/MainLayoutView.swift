@@ -19,8 +19,13 @@ struct MainLayoutView: View {
             FileTreePanel()
                 .frame(minWidth: 160, idealWidth: 220, maxWidth: 320)
 
-            CenterTerminalSplit(splitFraction: $splitFraction, palette: palette)
-                .frame(minWidth: 560)
+            if appState.activeViewMode == .canvas {
+                CanvasView()
+                    .frame(minWidth: 560)
+            } else {
+                CenterTerminalSplit(splitFraction: $splitFraction, palette: palette)
+                    .frame(minWidth: 560)
+            }
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(palette.appBackground)

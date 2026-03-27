@@ -12,6 +12,11 @@ enum CenterTab: Hashable {
     case file(URL)
 }
 
+enum ViewMode {
+    case editor
+    case canvas
+}
+
 enum TerminalStatus: Equatable {
     case idle
     case busy
@@ -99,6 +104,13 @@ class AppState {
     var openedFileURLs: [URL] = []
     var activeCenterTab: CenterTab = .preview
     var dirtyFiles: Set<URL> = []
+
+    // MARK: - Canvas View
+    var activeViewMode: ViewMode = .editor
+    var discoveredRoutes: [DiscoveredRoute] = []
+    var isDiscoveringRoutes: Bool = false
+    var canvasSelectedRouteID: UUID? = nil
+    let snapshotService = SnapshotService()
 
     private var tabStateByProject: [URL: ProjectTabState] = [:]
     private var sessionsByProject: [URL: [TerminalSession]] = [:]
@@ -216,6 +228,36 @@ class AppState {
 
     func setPort(_ url: URL, for projectURL: URL) {
         portByProject[projectURL] = url
+        // Start snapshot capture now that the server is up
+        if selectedProject?.url == projectURL, !discoveredRoutes.isEmpty {
+            snapshotService.clearSnapshots()
+            snapshotService.captureAll(routes: discoveredRoutes, serverURL: url)
+        }
+    }
+
+    // MARK: - Canvas route discovery
+
+    func discoverRoutes() {
+        guard let project = selectedProject else {
+            discoveredRoutes = []
+            return
+        }
+        isDiscoveringRoutes = true
+        canvasSelectedRouteID = nil
+        let projectURL = project.url
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let resolver = FrameworkDetector.detect(projectRoot: projectURL)
+            let routes = (try? resolver?.resolve(projectRoot: projectURL)) ?? []
+            DispatchQueue.main.async {
+                self?.discoveredRoutes = routes
+                self?.isDiscoveringRoutes = false
+                // Kick off snapshot capture if dev server is already running
+                if let self, let serverURL = self.port(for: projectURL), !routes.isEmpty {
+                    self.snapshotService.clearSnapshots()
+                    self.snapshotService.captureAll(routes: routes, serverURL: serverURL)
+                }
+            }
+        }
     }
 
     // MARK: - Refresh
@@ -321,26 +363,9 @@ class AppState {
     }
 
     func scanForProjects() {
-        // Load saved projects (includes any manually added folders)
         let saved = loadCustomProjects()
-
-        // Auto-discover subdirectories of rootDirectory not already in saved list
-        var discovered: [Project] = []
-        if let root = rootDirectory,
-           let contents = try? FileManager.default.contentsOfDirectory(
-               at: root,
-               includingPropertiesForKeys: [.isDirectoryKey],
-               options: [.skipsHiddenFiles]
-           ) {
-            discovered = contents
-                .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
-                .filter { url in !saved.contains(where: { $0.url == url }) }
-                .map { Project(name: $0.lastPathComponent, url: $0) }
-        }
-
-        let merged = (saved + discovered)
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        projects = merged
+        projects = saved
 
         if selectedProject == nil || !projects.contains(where: { $0.url == selectedProject?.url }) {
             selectedProject = projects.first

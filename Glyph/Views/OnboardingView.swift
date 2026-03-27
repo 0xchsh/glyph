@@ -33,8 +33,8 @@ struct OnboardingView: View {
                         isPickerPresented = true
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "folder.badge.plus")
-                            Text("Choose Location")
+                            Image(systemName: "folder")
+                            Text("Open Folder")
                         }
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.white)
@@ -44,7 +44,7 @@ struct OnboardingView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Text("Glyph will create a Glyph/ folder in the location you choose.\nAll your projects live inside it.")
+                    Text("Open a folder to get started.\nYou can add more folders anytime.")
                         .font(.system(size: 12))
                         .foregroundStyle(palette.secondaryText)
                         .multilineTextAlignment(.center)
@@ -64,18 +64,9 @@ struct OnboardingView: View {
             allowedContentTypes: [.folder]
         ) { result in
             switch result {
-            case .success(let parentURL):
-                let glyphURL = parentURL.appendingPathComponent("Glyph")
-                do {
-                    try FileManager.default.createDirectory(
-                        at: glyphURL,
-                        withIntermediateDirectories: true
-                    )
-                    appState.rootDirectory = glyphURL
-                    appState.scanForProjects()
-                } catch {
-                    errorMessage = "Couldn't create Glyph folder: \(error.localizedDescription)"
-                }
+            case .success(let url):
+                appState.rootDirectory = url
+                appState.addExistingFolder(url)
             case .failure(let error):
                 errorMessage = error.localizedDescription
             }

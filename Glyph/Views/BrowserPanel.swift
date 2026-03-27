@@ -86,21 +86,58 @@ struct BrowserPanel: View {
             } else {
                 ZStack {
                     palette.appBackground
-                    VStack(spacing: 16) {
-                        Image(systemName: "display")
-                            .font(.system(size: 36))
-                            .foregroundStyle(palette.secondaryText.opacity(0.2))
+                    let detectedPort = appState.port(for: appState.selectedProject?.url ?? URL(fileURLWithPath: "/"))
+                    if let port = detectedPort {
+                        // Port is running — show it as a launch button
+                        VStack(spacing: 20) {
+                            VStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.green.opacity(0.15))
+                                    .frame(width: 48, height: 48)
+                                    .overlay(
+                                        Image(systemName: "circle.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Color.green)
+                                    )
+                                Text("Dev server running")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(palette.secondaryText.opacity(0.6))
+                            }
+                            Button {
+                                appState.browserURL = port
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.up.right.square")
+                                        .font(.system(size: 12))
+                                    Text(port.absoluteString)
+                                        .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                }
+                                .foregroundStyle(palette.isDark ? Color.black : Color.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 9)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(palette.isDark ? Color.white : Color.black)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } else {
+                        // No port detected yet
                         VStack(spacing: 6) {
+                            Image(systemName: "display")
+                                .font(.system(size: 36))
+                                .foregroundStyle(palette.secondaryText.opacity(0.2))
                             Text("Waiting for dev server")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(palette.secondaryText.opacity(0.6))
-                            Text("Start a server in the terminal and Glyph will load it here automatically.")
+                            Text("Start a server in the terminal — detected ports will appear here.")
                                 .font(.system(size: 12))
                                 .foregroundStyle(palette.secondaryText.opacity(0.35))
                                 .multilineTextAlignment(.center)
                         }
+                        .frame(maxWidth: 300)
                     }
-                    .frame(maxWidth: 300)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -184,8 +221,20 @@ struct WebViewWrapper: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero)
+        let config = WKWebViewConfiguration()
+        // Allow JS (required for React / Next.js apps)
+        let pagePrefs = WKWebpagePreferences()
+        pagePrefs.allowsContentJavaScript = true
+        config.defaultWebpagePreferences = pagePrefs
+        config.preferences.javaScriptCanOpenWindowsAutomatically = false
+        // Allow http:// localhost loads
+        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+
+        let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+        webView.allowsMagnification = true
+        // Prevent white flash before page renders
+        webView.setValue(false, forKey: "drawsBackground")
         context.coordinator.webView = webView
         context.coordinator.loadedURL = url
         webView.load(URLRequest(url: url))

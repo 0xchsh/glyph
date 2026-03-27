@@ -72,8 +72,17 @@ struct FileTreePanel: View {
                     .foregroundStyle(palette.secondaryText)
                     .tracking(0.8)
                 Spacer()
-                Button {
-                    isNewProjectPresented = true
+                Menu {
+                    Button {
+                        openExistingFolder()
+                    } label: {
+                        Label("Open Folder", systemImage: "folder")
+                    }
+                    Button {
+                        isNewProjectPresented = true
+                    } label: {
+                        Label("New Project", systemImage: "plus.square")
+                    }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .medium))
@@ -81,20 +90,10 @@ struct FileTreePanel: View {
                         .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .help("New project")
-
-                Button {
-                    openExistingFolder()
-                } label: {
-                    Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(palette.secondaryText)
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Open folder")
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Add project")
 
                 Button {
                     openSettings()
@@ -111,6 +110,9 @@ struct FileTreePanel: View {
             .padding(.horizontal, 12)
             .frame(height: panelToolbarHeight)
             .background(palette.panelBackground)
+
+            // ── View mode switcher ────────────────────────────────────
+            viewModeSwitcher(palette: palette)
 
             palette.border.frame(height: 1)
 
@@ -183,15 +185,34 @@ struct FileTreePanel: View {
 
             Spacer().frame(height: 8)
 
-            // Files
-            SidebarSectionHeader(title: "Files", palette: palette)
-            fileSection(palette: palette)
+            if appState.activeViewMode == .canvas {
+                // Canvas mode: show discovered routes
+                SidebarSectionHeader(
+                    title: "Routes",
+                    palette: palette,
+                    trailing: {
+                        Button {
+                            appState.discoverRoutes()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10))
+                                .foregroundStyle(palette.secondaryText.opacity(0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Re-scan routes")
+                    }
+                )
+                routesSection(palette: palette)
+            } else {
+                // Editor mode: show files + ports
+                SidebarSectionHeader(title: "Files", palette: palette)
+                fileSection(palette: palette)
 
-            Spacer().frame(height: 8)
+                Spacer().frame(height: 8)
 
-            // Ports
-            SidebarSectionHeader(title: "Ports", palette: palette)
-            portsSection(palette: palette)
+                SidebarSectionHeader(title: "Ports", palette: palette)
+                portsSection(palette: palette)
+            }
         }
     }
 
@@ -250,6 +271,104 @@ struct FileTreePanel: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 5)
+    }
+
+    // MARK: - View mode switcher
+
+    @ViewBuilder
+    private func viewModeSwitcher(palette: ColorPalette) -> some View {
+        HStack(spacing: 0) {
+            ViewModeButton(
+                icon: "rectangle.split.3x1",
+                label: "Editor",
+                isActive: appState.activeViewMode == .editor,
+                palette: palette
+            ) {
+                appState.activeViewMode = .editor
+            }
+
+            ViewModeButton(
+                icon: "square.grid.2x2",
+                label: "Canvas",
+                isActive: appState.activeViewMode == .canvas,
+                palette: palette
+            ) {
+                appState.activeViewMode = .canvas
+                if appState.discoveredRoutes.isEmpty {
+                    appState.discoverRoutes()
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(palette.panelBackground)
+
+        palette.border.frame(height: 1)
+    }
+
+    // MARK: - Canvas routes section
+
+    @ViewBuilder
+    private func routesSection(palette: ColorPalette) -> some View {
+        if appState.isDiscoveringRoutes {
+            HStack(spacing: 8) {
+                ProgressView().scaleEffect(0.5).frame(width: 16, height: 16)
+                Text("Scanning…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(palette.secondaryText.opacity(0.4))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+        } else if appState.discoveredRoutes.isEmpty {
+            Text("No routes found")
+                .font(.system(size: 12))
+                .foregroundStyle(palette.secondaryText.opacity(0.35))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+        } else {
+            ForEach(appState.discoveredRoutes) { route in
+                Button {
+                    appState.canvasSelectedRouteID = route.id
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: route.isDynamic ? "bolt" : "doc.text")
+                            .font(.system(size: 11))
+                            .foregroundStyle(
+                                appState.canvasSelectedRouteID == route.id
+                                    ? palette.accent
+                                    : palette.secondaryText.opacity(0.55)
+                            )
+                            .frame(width: 16, alignment: .center)
+
+                        Text(route.path)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(
+                                appState.canvasSelectedRouteID == route.id
+                                    ? palette.primaryText
+                                    : palette.secondaryText.opacity(0.8)
+                            )
+                            .lineLimit(1)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 5)
+                    .background(
+                        Group {
+                            if appState.canvasSelectedRouteID == route.id {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(palette.isDark
+                                          ? Color(white: 0.22)
+                                          : Color(white: 0.0, opacity: 0.07))
+                                    .padding(.horizontal, 6)
+                            }
+                        }
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private func openExistingFolder() {
@@ -453,6 +572,37 @@ private struct FileTreeNode: View {
 
         Button("Rename…") { onRename(item) }
         Button("Delete", role: .destructive) { onDelete(item) }
+    }
+}
+
+// MARK: - ViewModeButton
+
+private struct ViewModeButton: View {
+    let icon: String
+    let label: String
+    let isActive: Bool
+    let palette: ColorPalette
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.55))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isActive
+                          ? (palette.isDark ? Color(white: 0.22) : Color(white: 0.0, opacity: 0.08))
+                          : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

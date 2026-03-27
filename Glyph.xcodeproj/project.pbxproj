@@ -32,6 +32,7 @@
 		BC8F5A9E2DF832C6A0B29003 /* FileItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7353F845E6DA22522D1FBE92 /* FileItem.swift */; };
 		DA61E218CBEE696EBF3795AF /* TerminalPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3143E90E1427AB4DD5E803E2 /* TerminalPanel.swift */; };
 		E033573AB34CA84F3EAC0A29 /* RouteResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857C7672AD073C89A7E1D81B /* RouteResolver.swift */; };
+		E72B0B761997267E2EE566EB /* InlineSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E8687241C00474757C1DD23 /* InlineSettingsView.swift */; };
 		F0A87E809A30CCFB027E4BCD /* CanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F679590985D05BFA714771 /* CanvasView.swift */; };
 		F4FA0A37694E57187B3B78B6 /* SnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA5A2B773B9F2C00B179573 /* SnapshotService.swift */; };
 		F65E8A6A56F9798330861380 /* NextJSPagesRouterAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD1E97180455DC859A5A532 /* NextJSPagesRouterAdapter.swift */; };
@@ -58,6 +59,7 @@
 		857C7672AD073C89A7E1D81B /* RouteResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteResolver.swift; sourceTree = "<group>"; };
 		869A843B8E1093B928FFC492 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8DA2D23ECBBDEA264F1ECAFA /* ReactRouterAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactRouterAdapter.swift; sourceTree = "<group>"; };
+		8E8687241C00474757C1DD23 /* InlineSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineSettingsView.swift; sourceTree = "<group>"; };
 		91A0FC92FB2177FF2536DE1E /* NextJSAppRouterAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextJSAppRouterAdapter.swift; sourceTree = "<group>"; };
 		9774544EFEB84282DCE75F39 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BE46FD858039FFA7F4286042 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 				EB10F78BBFC31DF6F8980076 /* CodeViewerPanel.swift */,
 				5B44BC7CC40BA9521A3280BA /* Dots3Spinner.swift */,
 				36A01D46E606B26691FB6219 /* FileTreePanel.swift */,
+				8E8687241C00474757C1DD23 /* InlineSettingsView.swift */,
 				49E1B27F2D18E06379F357DB /* MainLayoutView.swift */,
 				648BB67388BD974CC9E71BD2 /* MarkdownEditorView.swift */,
 				4F6739B5A39E3B1F39A96BC3 /* OnboardingView.swift */,
@@ -282,6 +285,7 @@
 				B6C8E61E0DB2310B7A0D9B6F /* FileTreePanel.swift in Sources */,
 				FA36C6A0192943DD709BFE12 /* FrameworkDetector.swift in Sources */,
 				8D9AAAEF3EAC9306B540BD9F /* GlyphApp.swift in Sources */,
+				E72B0B761997267E2EE566EB /* InlineSettingsView.swift in Sources */,
 				3D29248C138402BC47188DE1 /* MainLayoutView.swift in Sources */,
 				805B96B987D659434750CF26 /* MarkdownEditorView.swift in Sources */,
 				A4C447271DC6361CFB240877 /* NextJSAppRouterAdapter.swift in Sources */,

@@ -10,6 +10,7 @@ import SwiftUI
 enum CenterTab: Hashable {
     case preview
     case file(URL)
+    case settings
 }
 
 enum ViewMode {

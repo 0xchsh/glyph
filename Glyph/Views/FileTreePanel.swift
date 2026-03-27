@@ -45,7 +45,6 @@ final class DirectoryWatcher {
 
 struct FileTreePanel: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.openSettings) private var openSettings
     @State private var fileItems: [FileItem] = []
     @State private var expandedFolders: Set<URL> = []
     @State private var watcher = DirectoryWatcher()
@@ -100,11 +99,14 @@ struct FileTreePanel: View {
                 .help("Add project")
 
                 Button {
-                    openSettings()
+                    appState.activeCenterTab = .settings
+                    appState.activeViewMode = .editor
                 } label: {
                     Image(systemName: "gearshape")
                         .font(.system(size: 12))
-                        .foregroundStyle(palette.secondaryText.opacity(0.6))
+                        .foregroundStyle(appState.activeCenterTab == .settings
+                            ? palette.primaryText
+                            : palette.secondaryText.opacity(0.6))
                         .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                 }
@@ -310,7 +312,7 @@ struct FileTreePanel: View {
     private func routesSection(palette: ColorPalette) -> some View {
         if appState.isDiscoveringRoutes {
             HStack(spacing: 8) {
-                Dots3Spinner(size: 12, color: palette.secondaryText.opacity(0.5))
+                Dots3Spinner(size: 13, color: palette.secondaryText.opacity(0.85))
                 Text("Scanning…")
                     .font(.system(size: 12))
                     .foregroundStyle(palette.secondaryText.opacity(0.4))
@@ -459,7 +461,7 @@ private struct FileTreeNode: View {
                     if item.isDirectory {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText.opacity(active ? 0.5 : 0.3))
+                            .foregroundStyle(palette.secondaryText.opacity(active ? 0.8 : 0.5))
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
                             .frame(width: 14, alignment: .center)
                     } else {
@@ -473,9 +475,7 @@ private struct FileTreeNode: View {
                         .font(.system(size: 13))
                         .foregroundStyle(isSelected
                             ? palette.primaryText
-                            : (item.isDirectory
-                               ? palette.secondaryText.opacity(isHovered ? 0.7 : 0.45)
-                               : palette.secondaryText.opacity(isHovered ? 0.65 : 0.4)))
+                            : palette.secondaryText.opacity(isHovered ? 0.95 : 0.7))
                         .frame(width: 18, alignment: .center)
 
                     Spacer().frame(width: 6)
@@ -485,7 +485,7 @@ private struct FileTreeNode: View {
                         .font(.system(size: 13, weight: isSelected ? .medium : .regular))
                         .foregroundStyle(isSelected
                             ? palette.primaryText
-                            : palette.secondaryText.opacity(isHovered ? 0.9 : 0.65))
+                            : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
                         .lineLimit(1)
 
                     Spacer()
@@ -620,7 +620,7 @@ private struct SidebarSectionHeader<Trailing: View>: View {
         HStack {
             Text(title)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(palette.secondaryText.opacity(0.35))
+                .foregroundStyle(palette.secondaryText.opacity(0.6))
                 .tracking(0.2)
             Spacer()
             trailing()
@@ -658,14 +658,14 @@ private struct SidebarRow: View {
                     .font(.system(size: 13))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
-                        : palette.secondaryText.opacity(isHovered ? 0.7 : 0.45))
+                        : palette.secondaryText.opacity(isHovered ? 0.95 : 0.7))
                     .frame(width: 16, alignment: .center)
 
                 Text(label)
                     .font(.system(size: 13, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected
                         ? palette.primaryText
-                        : palette.secondaryText.opacity(isHovered ? 0.9 : 0.65))
+                        : palette.secondaryText.opacity(isHovered ? 1.0 : 0.85))
                     .lineLimit(1)
 
                 Spacer()
@@ -678,7 +678,7 @@ private struct SidebarRow: View {
                         .frame(width: 6, height: 6)
                         .padding(.trailing, 4)
                 case .busy, .crashed:
-                    Dots3Spinner(size: 12, color: palette.secondaryText.opacity(0.5))
+                    Dots3Spinner(size: 13, color: palette.secondaryText.opacity(0.85))
                         .padding(.trailing, 4)
                 case .none:
                     EmptyView()

@@ -45,10 +45,10 @@ struct ColorPalette {
         appBackground:     Color(red: 0.051, green: 0.051, blue: 0.055),
         panelBackground:   Color(red: 0.082, green: 0.082, blue: 0.090),
         sidebarBackground: Color(red: 0.063, green: 0.063, blue: 0.071),
-        accent:            Color(white: 0.78),
-        border:            Color(white: 0.14),
-        primaryText:       Color(white: 0.93),
-        secondaryText:     Color(white: 0.40),
+        accent:            Color(white: 0.82),
+        border:            Color(white: 0.16),
+        primaryText:       Color(white: 0.95),
+        secondaryText:     Color(white: 0.62),
         isDark: true
     )
 

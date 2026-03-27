@@ -43,6 +43,18 @@ struct CenterPanel: View {
                                 ? { appState.closeToRight(of: url) } : nil
                         )
                     }
+
+                    if appState.activeCenterTab == .settings {
+                        CenterTabButton(
+                            icon: "gearshape",
+                            label: "Settings",
+                            isDirty: false,
+                            isActive: true,
+                            palette: palette,
+                            onSelect: {},
+                            onClose: { appState.activeCenterTab = .preview }
+                        )
+                    }
                 }
             }
             .frame(height: panelToolbarHeight)
@@ -58,6 +70,8 @@ struct CenterPanel: View {
             case .file(let url):
                 CodeViewerPanel(url: url)
                     .id(url)
+            case .settings:
+                InlineSettingsView()
             }
         }
     }
@@ -84,11 +98,11 @@ private struct CenterTabButton: View {
                 HStack(spacing: 6) {
                     Image(systemName: icon)
                         .font(.system(size: 11))
-                        .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.55))
+                        .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.75))
 
                     Text(label)
                         .font(.system(size: 12))
-                        .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.7))
+                        .foregroundStyle(isActive ? palette.primaryText : palette.secondaryText.opacity(0.85))
                         .lineLimit(1)
 
                     // Dirty dot or close button

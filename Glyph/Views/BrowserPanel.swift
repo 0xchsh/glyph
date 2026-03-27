@@ -12,6 +12,8 @@ struct BrowserPanel: View {
     @State private var urlText: String = ""
     @State private var backHovered = false
     @State private var refreshHovered = false
+    @State private var loadProgress: Double = 0      // 0.0 – 1.0
+    @State private var isLoading: Bool = false
     @FocusState private var urlFieldFocused: Bool
 
     var body: some View {
@@ -75,13 +77,40 @@ struct BrowserPanel: View {
             .frame(height: panelToolbarHeight)
             .background(palette.panelBackground)
 
-            palette.border.frame(height: 1)
+            // Loading progress bar — sits flush under the toolbar
+            ZStack(alignment: .leading) {
+                Color(NSColor.separatorColor).opacity(0.4).frame(height: 1)
+                if isLoading {
+                    palette.accent
+                        .frame(width: isLoading ? nil : 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .scaleEffect(x: loadProgress, y: 1, anchor: .leading)
+                        .frame(height: 2)
+                        .animation(.easeInOut(duration: 0.2), value: loadProgress)
+                }
+            }
+            .frame(height: isLoading ? 2 : 1)
 
             // Content
             if let url = appState.browserURL {
-                WebViewWrapper(url: url, onCoordinatorReady: { webCoordinator = $0 })
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.opacity.animation(.easeIn(duration: 0.3)))
+                WebViewWrapper(
+                    url: url,
+                    onCoordinatorReady: { webCoordinator = $0 },
+                    onLoadStarted: {
+                        isLoading = true
+                        loadProgress = 0.1
+                    },
+                    onLoadProgress: { p in loadProgress = p },
+                    onLoadFinished: {
+                        loadProgress = 1.0
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            isLoading = false
+                            loadProgress = 0
+                        }
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity.animation(.easeIn(duration: 0.3)))
             } else {
                 ZStack {
                     palette.appBackground
@@ -165,6 +194,9 @@ struct BrowserPanel: View {
 struct WebViewWrapper: NSViewRepresentable {
     let url: URL
     var onCoordinatorReady: ((Coordinator) -> Void)?
+    var onLoadStarted: (() -> Void)?
+    var onLoadProgress: ((Double) -> Void)?
+    var onLoadFinished: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -183,16 +215,32 @@ struct WebViewWrapper: NSViewRepresentable {
         webView.allowsMagnification = true
         // Prevent white flash before page renders
         webView.setValue(false, forKey: "drawsBackground")
-        context.coordinator.webView = webView
-        context.coordinator.loadedURL = url
-        webView.load(URLRequest(url: url))
         let coordinator = context.coordinator
+        coordinator.webView = webView
+        coordinator.loadedURL = url
+        coordinator.onLoadStarted = onLoadStarted
+        coordinator.onLoadProgress = onLoadProgress
+        coordinator.onLoadFinished = onLoadFinished
+        // Hide native scroll indicators
+        if let sv = webView.enclosingScrollView {
+            sv.hasVerticalScroller = false
+            sv.hasHorizontalScroller = false
+        }
+        // Observe estimatedProgress for the progress bar
+        coordinator.progressObservation = webView.observe(\.estimatedProgress, options: [.new]) { wv, _ in
+            DispatchQueue.main.async {
+                coordinator.onLoadProgress?(wv.estimatedProgress)
+            }
+        }
+        webView.load(URLRequest(url: url))
         DispatchQueue.main.async { onCoordinatorReady?(coordinator) }
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Only load if the URL prop changed, not on every SwiftUI redraw
+        context.coordinator.onLoadStarted = onLoadStarted
+        context.coordinator.onLoadProgress = onLoadProgress
+        context.coordinator.onLoadFinished = onLoadFinished
         guard context.coordinator.loadedURL != url else { return }
         context.coordinator.loadedURL = url
         webView.load(URLRequest(url: url))
@@ -201,8 +249,22 @@ struct WebViewWrapper: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate {
         weak var webView: WKWebView?
         var loadedURL: URL?
+        var onLoadStarted: (() -> Void)?
+        var onLoadProgress: ((Double) -> Void)?
+        var onLoadFinished: (() -> Void)?
+        var progressObservation: NSKeyValueObservation?
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {}
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {}
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            DispatchQueue.main.async { self.onLoadStarted?() }
+        }
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            DispatchQueue.main.async { self.onLoadFinished?() }
+        }
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            DispatchQueue.main.async { self.onLoadFinished?() }
+        }
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            DispatchQueue.main.async { self.onLoadFinished?() }
+        }
     }
 }

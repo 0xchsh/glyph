@@ -21,10 +21,6 @@ struct GlyphApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .defaultSize(width: 1440, height: 900)
 
-        Settings {
-            SettingsView()
-                .environment(appState)
-        }
     }
 }
 

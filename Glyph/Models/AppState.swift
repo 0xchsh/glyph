@@ -38,10 +38,18 @@ struct TerminalSession: Identifiable {
 
 @Observable
 class AppState {
+    private enum DefaultsKey {
+        static let rootDirectoryPath = "rootDirectoryPath"
+        static let currentPalette = "currentPalette"
+        static let autoOpenBrowserPreview = "autoOpenBrowserPreview"
+        static let defaultPresetID = "defaultPresetID"
+        static let savedProjects = "savedProjects"
+    }
+
     var rootDirectory: URL? {
         didSet {
             if let url = rootDirectory {
-                UserDefaults.standard.set(url.path, forKey: "rootDirectoryPath")
+                UserDefaults.standard.set(url.path, forKey: DefaultsKey.rootDirectoryPath)
             }
         }
     }
@@ -66,13 +74,27 @@ class AppState {
             }
             // Auto-spawn default shell if no sessions exist for this project
             if let new = selectedProject, sessionsByProject[new.url]?.isEmpty ?? true {
-                addSession(preset: AgentPreset.defaults[0], for: new.url)
+                addSession(preset: defaultPreset, for: new.url)
             }
         }
     }
     var browserURL: URL?
-    var currentPalette: Palette = .obsidian
+    var currentPalette: Palette = .obsidian {
+        didSet {
+            UserDefaults.standard.set(currentPalette.rawValue, forKey: DefaultsKey.currentPalette)
+        }
+    }
     var fileTreeRefreshToken: Int = 0
+    var autoOpenBrowserPreview: Bool = true {
+        didSet {
+            UserDefaults.standard.set(autoOpenBrowserPreview, forKey: DefaultsKey.autoOpenBrowserPreview)
+        }
+    }
+    var defaultPresetID: String = AgentPreset.defaults[0].id {
+        didSet {
+            UserDefaults.standard.set(defaultPresetID, forKey: DefaultsKey.defaultPresetID)
+        }
+    }
 
     var openedFileURLs: [URL] = []
     var activeCenterTab: CenterTab = .preview
@@ -82,6 +104,10 @@ class AppState {
     private var sessionsByProject: [URL: [TerminalSession]] = [:]
     private var activeSessionIDByProject: [URL: UUID] = [:]
     private var portByProject: [URL: URL] = [:]
+
+    var defaultPreset: AgentPreset {
+        AgentPreset.defaults.first(where: { $0.id == defaultPresetID }) ?? AgentPreset.defaults[0]
+    }
 
     // MARK: - File tab operations
 
@@ -273,7 +299,21 @@ class AppState {
     // MARK: - Init & project scanning
 
     init() {
-        if let path = UserDefaults.standard.string(forKey: "rootDirectoryPath"),
+        let defaults = UserDefaults.standard
+
+        if let rawPalette = defaults.string(forKey: DefaultsKey.currentPalette),
+           let palette = Palette(rawValue: rawPalette) {
+            currentPalette = palette
+        }
+        if defaults.object(forKey: DefaultsKey.autoOpenBrowserPreview) != nil {
+            autoOpenBrowserPreview = defaults.bool(forKey: DefaultsKey.autoOpenBrowserPreview)
+        }
+        if let savedDefaultPresetID = defaults.string(forKey: DefaultsKey.defaultPresetID),
+           AgentPreset.defaults.contains(where: { $0.id == savedDefaultPresetID }) {
+            defaultPresetID = savedDefaultPresetID
+        }
+
+        if let path = defaults.string(forKey: DefaultsKey.rootDirectoryPath),
            FileManager.default.fileExists(atPath: path) {
             rootDirectory = URL(fileURLWithPath: path)
             scanForProjects()
@@ -281,32 +321,76 @@ class AppState {
     }
 
     func scanForProjects() {
-        guard let root = rootDirectory else { return }
-        let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(
-            at: root,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else { return }
+        // Load saved projects (includes any manually added folders)
+        let saved = loadCustomProjects()
 
-        let discovered = contents
-            .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
-            .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
-            .map { Project(name: $0.lastPathComponent, url: $0) }
+        // Auto-discover subdirectories of rootDirectory not already in saved list
+        var discovered: [Project] = []
+        if let root = rootDirectory,
+           let contents = try? FileManager.default.contentsOfDirectory(
+               at: root,
+               includingPropertiesForKeys: [.isDirectoryKey],
+               options: [.skipsHiddenFiles]
+           ) {
+            discovered = contents
+                .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+                .filter { url in !saved.contains(where: { $0.url == url }) }
+                .map { Project(name: $0.lastPathComponent, url: $0) }
+        }
 
-        projects = discovered
+        let merged = (saved + discovered)
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        projects = merged
 
         if selectedProject == nil || !projects.contains(where: { $0.url == selectedProject?.url }) {
             selectedProject = projects.first
         }
     }
 
-    func createProject(name: String) throws {
-        guard let root = rootDirectory else { return }
-        let projectURL = root.appendingPathComponent(name)
-        try FileManager.default.createDirectory(at: projectURL, withIntermediateDirectories: true)
-        scanForProjects()
-        selectedProject = projects.first { $0.url == projectURL }
+    func createProject(name: String, path: URL) throws {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: path.path) {
+            try fm.createDirectory(at: path, withIntermediateDirectories: true)
+        }
+        let displayName = name.isEmpty ? path.lastPathComponent : name
+        let project = Project(name: displayName, url: path)
+        if !projects.contains(where: { $0.url == path }) {
+            projects.append(project)
+            projects.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+        saveCustomProjects()
+        selectedProject = projects.first { $0.url == path }
+    }
+
+    func removeProject(_ url: URL) {
+        projects.removeAll { $0.url == url }
+        if selectedProject?.url == url {
+            selectedProject = projects.first
+        }
+        saveCustomProjects()
+    }
+
+    func addExistingFolder(_ url: URL) {
+        let project = Project(name: url.lastPathComponent, url: url)
+        if !projects.contains(where: { $0.url == url }) {
+            projects.append(project)
+            projects.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            saveCustomProjects()
+        }
+        selectedProject = projects.first { $0.url == url }
+    }
+
+    private func saveCustomProjects() {
+        let data = projects.map { ["name": $0.name, "url": $0.url.path] }
+        UserDefaults.standard.set(data, forKey: DefaultsKey.savedProjects)
+    }
+
+    private func loadCustomProjects() -> [Project] {
+        guard let data = UserDefaults.standard.array(forKey: DefaultsKey.savedProjects) as? [[String: String]] else { return [] }
+        return data.compactMap { dict in
+            guard let name = dict["name"], let urlPath = dict["url"] else { return nil }
+            return Project(name: name, url: URL(fileURLWithPath: urlPath))
+        }
     }
 }
 

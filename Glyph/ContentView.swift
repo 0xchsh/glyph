@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var appState = AppState()
+    @Environment(AppState.self) private var appState
 
     var body: some View {
         Group {
@@ -16,7 +16,6 @@ struct ContentView: View {
                 MainLayoutView()
             }
         }
-        .environment(appState)
         .preferredColorScheme(appState.palette.isDark ? .dark : .light)
     }
 }

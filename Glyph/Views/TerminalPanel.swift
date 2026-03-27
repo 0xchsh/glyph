@@ -48,9 +48,9 @@ struct TerminalPanel: View {
 
                 if let url = selectedURL {
                     HStack(spacing: 0) {
-                        // + new shell tab
+                        // + new default preset tab
                         Button {
-                            appState.addSession(preset: AgentPreset.defaults[0], for: url)
+                            appState.addSession(preset: appState.defaultPreset, for: url)
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 11, weight: .medium))
@@ -59,6 +59,7 @@ struct TerminalPanel: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .help("New terminal session")
 
                         // Preset picker — opens selected preset in a new tab
                         Menu {
@@ -100,7 +101,8 @@ struct TerminalPanel: View {
                         onURLDetected: { urlString in
                             guard let detected = URL(string: urlString) else { return }
                             appState.setPort(detected, for: session.projectURL)
-                            if session.projectURL == appState.selectedProject?.url {
+                            if appState.autoOpenBrowserPreview,
+                               session.projectURL == appState.selectedProject?.url {
                                 appState.browserURL = detected
                             }
                         },
@@ -152,6 +154,7 @@ private struct TerminalTabButton: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .help("Close terminal")
                     }
                 }
                 .padding(.horizontal, 12)

@@ -108,6 +108,7 @@ private struct CenterTabButton: View {
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .help("Close tab")
                             }
                         }
                         .frame(width: 14, height: 14)

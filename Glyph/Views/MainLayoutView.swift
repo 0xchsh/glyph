@@ -11,7 +11,8 @@ let panelToolbarHeight: CGFloat = 38
 struct MainLayoutView: View {
     @Environment(AppState.self) private var appState
     @State private var centerSplitFraction: CGFloat = 0.5
-    @State private var sidebarWidth: CGFloat = 220
+    @State private var sidebarWidth: CGFloat = 260
+    @State private var browserWidth: CGFloat = 380
 
     var body: some View {
         let palette = appState.palette
@@ -21,14 +22,10 @@ struct MainLayoutView: View {
             let clampedSidebar = min(max(sidebarWidth, 160), 320)
 
             ZStack(alignment: .topLeading) {
-                // Background colors extend behind the transparent titlebar
-                HStack(spacing: 0) {
-                    palette.sidebarBackground
-                        .frame(width: clampedSidebar)
-                    palette.appBackground
-                        .frame(maxWidth: .infinity)
-                }
-                .ignoresSafeArea(.all, edges: .top)
+                // Full-width sidebarBackground behind the transparent titlebar
+                palette.sidebarBackground
+                    .frame(maxWidth: .infinity)
+                    .ignoresSafeArea(.all, edges: .top)
 
                 HStack(spacing: 0) {
                     FileTreePanel()
@@ -41,8 +38,26 @@ struct MainLayoutView: View {
                         CanvasView()
                             .frame(maxWidth: .infinity)
                     } else {
-                        CenterTerminalSplit(splitFraction: $centerSplitFraction, palette: palette)
-                            .frame(maxWidth: .infinity)
+                        GeometryReader { innerGeo in
+                            ZStack(alignment: .topLeading) {
+                                HStack(spacing: 0) {
+                                    CenterTerminalSplit(splitFraction: $centerSplitFraction, palette: palette)
+                                        .frame(maxWidth: .infinity)
+                                    if appState.showBrowser {
+                                        Color(NSColor.separatorColor).opacity(0.4).frame(width: 1)
+                                        BrowserPanel()
+                                            .frame(width: browserWidth - 1)
+                                    }
+                                }
+
+                                // Browser panel divider hit area
+                                if appState.showBrowser {
+                                    BrowserDivider(browserWidth: $browserWidth, totalWidth: innerGeo.size.width)
+                                        .offset(x: innerGeo.size.width - browserWidth - 12)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
 
@@ -86,6 +101,34 @@ private struct SidebarDivider: View {
                             isDragging = true
                             let newW = sidebarWidth + v.translation.width
                             sidebarWidth = min(max(newW, 160), 320)
+                        }
+                        .onEnded { _ in isDragging = false }
+                )
+                .onHover { hovering in
+                    isHovering = hovering
+                    if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                }
+        }
+    }
+}
+
+private struct BrowserDivider: View {
+    @Binding var browserWidth: CGFloat
+    let totalWidth: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
+
+    var body: some View {
+        GeometryReader { geo in
+            Rectangle()
+                .fill(Color.white.opacity(0.001))
+                .frame(width: 24, height: geo.size.height)
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { v in
+                            isDragging = true
+                            let newW = browserWidth - v.translation.width
+                            browserWidth = min(max(newW, 240), 700)
                         }
                         .onEnded { _ in isDragging = false }
                 )

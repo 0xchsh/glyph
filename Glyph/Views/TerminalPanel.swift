@@ -46,8 +46,8 @@ struct TerminalPanel: View {
 
                 Spacer(minLength: 0)
 
-                if let url = selectedURL {
-                    HStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    if let url = selectedURL {
                         // + new default preset tab
                         Button {
                             appState.addSession(preset: appState.defaultPreset, for: url)
@@ -78,8 +78,23 @@ struct TerminalPanel: View {
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)
                         .fixedSize()
-                        .padding(.trailing, 8)
                     }
+
+                    // Browser toggle
+                    Button {
+                        appState.showBrowser.toggle()
+                    } label: {
+                        Image(systemName: "globe")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(appState.showBrowser
+                                ? palette.accent
+                                : palette.secondaryText.opacity(0.6))
+                            .frame(width: 30, height: panelToolbarHeight)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(appState.showBrowser ? "Hide browser" : "Show browser")
+                    .padding(.trailing, 8)
                 }
             }
             .frame(height: panelToolbarHeight)

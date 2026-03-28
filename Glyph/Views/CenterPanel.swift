@@ -17,16 +17,6 @@ struct CenterPanel: View {
             // Tab bar
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
-                    CenterTabButton(
-                        icon: "globe",
-                        label: "Preview",
-                        isDirty: false,
-                        isActive: appState.activeCenterTab == .preview,
-                        palette: palette,
-                        onSelect: { appState.activeCenterTab = .preview },
-                        onClose: nil
-                    )
-
                     ForEach(appState.openedFileURLs, id: \.self) { url in
                         let isLast = url == appState.openedFileURLs.last
                         CenterTabButton(
@@ -66,7 +56,8 @@ struct CenterPanel: View {
             // preserving unsaved edits when switching between tabs.
             switch appState.activeCenterTab {
             case .preview:
-                BrowserPanel()
+                palette.appBackground
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .file(let url):
                 CodeViewerPanel(url: url)
                     .id(url)

@@ -7,6 +7,18 @@ import SwiftUI
 import AppKit
 import SwiftTerm
 
+// No-op CAAction — used to disable implicit layer animations (e.g. cursor fade)
+private final class NullCAAction: NSObject, CAAction {
+    func run(forKey event: String, object anObject: Any, arguments dict: [AnyHashable: Any]?) {}
+}
+
+private func disableImplicitAnimations(in layer: CALayer?) {
+    guard let layer else { return }
+    let noAnim = NullCAAction()
+    layer.actions = ["opacity": noAnim, "hidden": noAnim, "backgroundColor": noAnim]
+    layer.sublayers?.forEach { disableImplicitAnimations(in: $0) }
+}
+
 // MARK: - GlyphTerminalView
 
 final class GlyphTerminalView: LocalProcessTerminalView {
@@ -18,6 +30,10 @@ final class GlyphTerminalView: LocalProcessTerminalView {
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
         subviews.compactMap { $0 as? NSScroller }.forEach { $0.isHidden = true }
+        // Disable implicit opacity/hidden animations so cursor blinks analog (hard on/off)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            disableImplicitAnimations(in: self?.layer)
+        }
     }
 
     override func dataReceived(slice: ArraySlice<UInt8>) {

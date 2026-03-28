@@ -665,7 +665,7 @@ private struct SidebarRow: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     } else {
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(palette.isDark ? Color(white: 0.22) : Color(white: 0.88))
+                            .fill(palette.isDark ? Color(white: 0.12) : Color(white: 0.78))
                             .frame(width: 36, height: 36)
                             .overlay(
                                 Text(String(label.prefix(1)).uppercased())

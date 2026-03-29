@@ -41,8 +41,12 @@ struct MainLayoutView: View {
                         GeometryReader { innerGeo in
                             ZStack(alignment: .topLeading) {
                                 HStack(spacing: 0) {
-                                    CenterTerminalSplit(splitFraction: $centerSplitFraction, palette: palette)
-                                        .frame(maxWidth: .infinity)
+                                    CenterTerminalSplit(
+                                        splitFraction: $centerSplitFraction,
+                                        palette: palette,
+                                        hasCenterContent: appState.activeCenterTab != .preview
+                                    )
+                                    .frame(maxWidth: .infinity)
                                     if appState.showBrowser {
                                         Color(NSColor.separatorColor).opacity(0.4).frame(width: 1)
                                         BrowserPanel()
@@ -143,6 +147,7 @@ private struct BrowserDivider: View {
 private struct CenterTerminalSplit: View {
     @Binding var splitFraction: CGFloat
     let palette: ColorPalette
+    let hasCenterContent: Bool
 
     @State private var isDragging = false
     @State private var isHovering = false
@@ -152,7 +157,7 @@ private struct CenterTerminalSplit: View {
         GeometryReader { geo in
             let W = geo.size.width
             let H = geo.size.height
-            let committedX = W * splitFraction
+            let committedX = hasCenterContent ? W * splitFraction : 0
             let ghostX = isDragging
                 ? min(max(committedX + dragOffset, W * 0.2), W * 0.8)
                 : committedX
@@ -160,14 +165,16 @@ private struct CenterTerminalSplit: View {
             ZStack(alignment: .topLeading) {
                 // Panels never resize during drag — only update on commit
                 HStack(spacing: 0) {
-                    CenterPanel()
-                        .frame(width: committedX)
+                    if hasCenterContent {
+                        CenterPanel()
+                            .frame(width: committedX)
+                    }
                     TerminalPanel()
                         .frame(maxWidth: .infinity)
                 }
 
                 // Divider line — only visible on hover/drag
-                if isHovering || isDragging {
+                if hasCenterContent && (isHovering || isDragging) {
                     Color(NSColor.separatorColor)
                         .opacity(isDragging ? 0.0 : 0.8)
                         .frame(width: 1, height: H)
@@ -177,7 +184,7 @@ private struct CenterTerminalSplit: View {
                 }
 
                 // Ghost line tracks cursor during drag
-                if isDragging {
+                if hasCenterContent && isDragging {
                     Color(NSColor.separatorColor)
                         .frame(width: 1, height: H)
                         .offset(x: ghostX)
@@ -186,6 +193,7 @@ private struct CenterTerminalSplit: View {
                 }
 
                 // Drag handle — 24 px hit area centered on the divider
+                if hasCenterContent {
                 Rectangle()
                     .fill(Color.white.opacity(0.001))
                     .frame(width: 24, height: H)
@@ -214,6 +222,7 @@ private struct CenterTerminalSplit: View {
                         isHovering = hovering
                         if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
                     }
+                } // end if hasCenterContent (drag handle)
             }
         }
     }

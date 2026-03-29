@@ -49,6 +49,7 @@ struct InlineSettingsView: View {
 
             // ── Content ───────────────────────────────────────────────
             ScrollView {
+
                 VStack(alignment: .leading, spacing: 0) {
                     Text(selectedSection.rawValue)
                         .font(.system(size: 20, weight: .semibold))

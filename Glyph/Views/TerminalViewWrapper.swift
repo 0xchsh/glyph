@@ -27,12 +27,22 @@ final class GlyphTerminalView: LocalProcessTerminalView {
     private var lastEmittedStatus: TerminalStatus = .idle
     private var idleWorkItem: DispatchWorkItem?
 
+    private func hideScrollers(in view: NSView) {
+        if let scroller = view as? NSScroller { scroller.isHidden = true }
+        if let sv = view as? NSScrollView {
+            sv.hasVerticalScroller = false
+            sv.hasHorizontalScroller = false
+        }
+        view.subviews.forEach { hideScrollers(in: $0) }
+    }
+
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
-        subviews.compactMap { $0 as? NSScroller }.forEach { $0.isHidden = true }
-        // Disable implicit opacity/hidden animations so cursor blinks analog (hard on/off)
+        // Delay both calls so SwiftTerm's internal scroll views are fully set up first
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            disableImplicitAnimations(in: self?.layer)
+            guard let self else { return }
+            self.hideScrollers(in: self)
+            disableImplicitAnimations(in: self.layer)
         }
     }
 
@@ -165,6 +175,7 @@ struct TerminalViewWrapper: NSViewRepresentable {
         view.nativeBackgroundColor = backgroundColor
         view.nativeForegroundColor = foregroundColor
         view.caretColor = .white
+        view.caretViewTracksFocus = false
         view.onURLDetected = onURLDetected
         view.onStatusChanged = onStatusChanged
         let descriptor = NSFontDescriptor(fontAttributes: [

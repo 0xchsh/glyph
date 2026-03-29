@@ -189,7 +189,7 @@ final class LineNumbersRulerView: NSRulerView {
         guard
             let scrollView = textView.enclosingScrollView,
             let layoutManager = textView.layoutManager,
-            let textContainer = textView.textContainer
+            textView.textContainer != nil
         else { return }
 
         // Background + separator

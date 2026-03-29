@@ -169,6 +169,7 @@ struct FileTreePanel: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
             } else {
+                VStack(spacing: 4) {
                 ForEach(appState.projects) { project in
                     SidebarRow(
                         icon: "folder",
@@ -183,6 +184,7 @@ struct FileTreePanel: View {
                         onRemove: { appState.removeProject(project.url) }
                     )
                 }
+                } // VStack spacing
             }
 
             Spacer().frame(height: 4)

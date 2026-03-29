@@ -60,6 +60,11 @@ struct MainLayoutView: View {
                                         .offset(x: innerGeo.size.width - browserWidth - 12)
                                 }
                             }
+                            .onChange(of: appState.showBrowser) { _, isShowing in
+                                if isShowing {
+                                    browserWidth = innerGeo.size.width / 2
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity)
                     }

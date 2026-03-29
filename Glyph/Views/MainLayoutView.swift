@@ -141,6 +141,13 @@ private struct BrowserDivider: View {
                         }
                         .onEnded { _ in isDragging = false }
                 )
+                .simultaneousGesture(
+                    TapGesture(count: 2).onEnded {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            browserWidth = totalWidth / 2
+                        }
+                    }
+                )
                 .onHover { hovering in
                     isHovering = hovering
                     if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }

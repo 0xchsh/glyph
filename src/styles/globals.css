@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ──────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('../assets/fonts/OpenRunde-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Runde';
+  src: url('../assets/fonts/OpenRunde-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Runde';
+  src: url('../assets/fonts/OpenRunde-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Runde';
+  src: url('../assets/fonts/OpenRunde-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Open Runde', -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  background-color: #09090b; /* zinc-950 */
+  color: #fafafa; /* zinc-50 */
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Allow text selection in editor areas */
+.selectable {
+  user-select: text;
+}
+
+/* Window drag region — apply to the top bar area */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+/* Buttons / interactive elements inside a drag region must opt out */
+.no-drag {
+  -webkit-app-region: no-drag;
+}

@@ -1,13 +1,8 @@
 import { FolderOpen, Globe, Lightning } from '@phosphor-icons/react'
-import { useProjectStore } from '../../stores/project-store'
+import { useAddProject } from '../../lib/use-add-project'
 
 export function StartScreen() {
-  const { addProject } = useProjectStore()
-
-  const handleOpenProject = async () => {
-    const path = await window.electron.openFolderDialog()
-    if (path) addProject(path)
-  }
+  const { openFolder, cloneFromUrl, quickStart } = useAddProject()
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-zinc-950 gap-12">
@@ -22,19 +17,19 @@ export function StartScreen() {
           icon={<FolderOpen size={32} weight="light" />}
           title="Open project"
           description="Browse for an existing folder"
-          onClick={handleOpenProject}
+          onClick={openFolder}
         />
         <ActionCard
           icon={<Globe size={32} weight="light" />}
           title="Clone from URL"
           description="Paste a Git URL to clone"
-          onClick={() => {/* TODO */}}
+          onClick={cloneFromUrl}
         />
         <ActionCard
           icon={<Lightning size={32} weight="light" />}
           title="Quick start"
           description="Scaffold a new project"
-          onClick={() => {/* TODO */}}
+          onClick={quickStart}
         />
       </div>
     </div>

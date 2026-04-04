@@ -1,18 +1,27 @@
+import { useState, useRef, useEffect } from 'react'
 import { useProjectStore, useActiveProject } from '../../stores/project-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useAddProject } from '../../lib/use-add-project'
 import { ProjectItem } from './ProjectItem'
 import { FileTree } from './FileTree'
-import { Plus, Gear } from '@phosphor-icons/react'
+import { Plus, Gear, FolderOpen, Globe, Lightning } from '@phosphor-icons/react'
 
 export function Sidebar() {
-  const { projects, activeProjectId, setActiveProject, addProject } = useProjectStore()
+  const { projects, activeProjectId, setActiveProject } = useProjectStore()
   const activeProject = useActiveProject()
   const { openSettings } = useSettingsStore()
+  const { openFolder, cloneFromUrl, quickStart } = useAddProject()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-  const handleAddProject = async () => {
-    const path = await window.electron.openFolderDialog()
-    if (path) addProject(path)
-  }
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 border-r border-zinc-800" style={{ width: 240, minWidth: 200, maxWidth: 320 }}>
@@ -21,13 +30,22 @@ export function Sidebar() {
         <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
           Projects
         </span>
-        <button
-          onClick={handleAddProject}
-          className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5 rounded"
-          title="Add project"
-        >
-          <Plus size={14} weight="bold" />
-        </button>
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5 rounded"
+            title="Add project"
+          >
+            <Plus size={14} weight="bold" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50 w-44 overflow-hidden">
+              <MenuItem icon={<FolderOpen size={13} />} label="Open folder" onClick={() => { openFolder(); setMenuOpen(false) }} />
+              <MenuItem icon={<Globe size={13} />} label="Clone from URL" onClick={() => { cloneFromUrl(); setMenuOpen(false) }} />
+              <MenuItem icon={<Lightning size={13} />} label="Quick start" onClick={() => { quickStart(); setMenuOpen(false) }} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Project list — fixed max height, scrollable */}
@@ -91,5 +109,17 @@ export function Sidebar() {
         </button>
       </div>
     </div>
+  )
+}
+
+function MenuItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors text-left w-full"
+    >
+      <span className="text-zinc-500">{icon}</span>
+      {label}
+    </button>
   )
 }

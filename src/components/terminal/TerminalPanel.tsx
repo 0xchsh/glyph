@@ -1,8 +1,10 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { Plus, X, Terminal as TerminalIcon } from '@phosphor-icons/react'
-import { useTerminalStore, TerminalType } from '../../stores/terminal-store'
+import { useTerminalStore, TerminalType, TerminalTab } from '../../stores/terminal-store'
 import { useActiveProject } from '../../stores/project-store'
 import { TerminalInstance } from './TerminalInstance'
+
+const EMPTY_TABS: TerminalTab[] = []
 
 const TYPE_LABELS: Record<TerminalType, string> = {
   shell: 'Shell',
@@ -15,7 +17,7 @@ export function TerminalPanel() {
   const { addTab, removeTab, setActiveTab } = useTerminalStore()
 
   const projectId = project?.id ?? ''
-  const tabs = useTerminalStore((s) => s.tabs[projectId] ?? [])
+  const tabs = useTerminalStore((s) => s.tabs[projectId] ?? EMPTY_TABS)
   const activeTabId = useTerminalStore((s) => s.activeTabId[projectId] ?? null)
 
   const openTab = useCallback(

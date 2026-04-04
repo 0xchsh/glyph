@@ -32,10 +32,12 @@ export default function App() {
                 </div>
               </>
             )}
-            {/* Right — terminal column — always visible */}
-            <div className="w-[420px] shrink-0 border-l border-zinc-800">
-              <TerminalPanel />
-            </div>
+            {/* Right — terminal column — hidden in settings */}
+            {!isSettingsOpen && (
+              <div className="w-[420px] shrink-0 border-l border-zinc-800">
+                <TerminalPanel />
+              </div>
+            )}
           </>
         ) : (
           <StartScreen />

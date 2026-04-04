@@ -14,9 +14,29 @@ function getShell(): string {
 }
 
 function getArgs(type: 'shell' | 'claude' | 'codex'): string[] {
-  if (type === 'claude') return ['-i', '-l', '-c', 'claude']
-  if (type === 'codex') return ['-i', '-l', '-c', 'codex']
-  return ['-i', '-l']
+  if (type === 'claude') return ['-c', 'claude']
+  if (type === 'codex') return ['-c', 'codex']
+  return []
+}
+
+function buildEnv(): Record<string, string> {
+  const PATH = [
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+    '/usr/sbin',
+    '/sbin',
+    process.env['PATH'] ?? '',
+  ].filter(Boolean).join(':')
+
+  return {
+    ...process.env as Record<string, string>,
+    PATH,
+    TERM: 'xterm-256color',
+    COLORTERM: 'truecolor',
+  }
 }
 
 export function createPty(
@@ -34,7 +54,7 @@ export function createPty(
     cols: 80,
     rows: 24,
     cwd: projectPath,
-    env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>,
+    env: buildEnv(),
   })
 
   instance.onData((data) => {

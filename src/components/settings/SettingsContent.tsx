@@ -5,14 +5,16 @@ import { useSettingsStore } from '../../stores/settings-store'
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
+      role="switch"
+      aria-checked={value}
       onClick={() => onChange(!value)}
-      className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ${
+      className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 shrink-0 ${
         value ? 'bg-zinc-300' : 'bg-zinc-700'
       }`}
     >
       <span
-        className={`absolute top-0.5 w-4 h-4 rounded-full bg-zinc-950 transition-transform ${
-          value ? 'translate-x-[18px]' : 'translate-x-0.5'
+        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
+          value ? 'bg-zinc-900 translate-x-4' : 'bg-zinc-300 translate-x-0'
         }`}
       />
     </button>
@@ -206,15 +208,17 @@ export function SettingsContent() {
   const { activeSection } = useSettingsStore()
 
   return (
-    <div className="flex-1 bg-zinc-900 h-full overflow-y-auto px-12 py-10 min-w-0">
-      <h1 className="text-xl font-semibold text-zinc-100 mb-8">
-        {SECTION_TITLES[activeSection]}
-      </h1>
+    <div className="flex-1 bg-zinc-900 h-full overflow-y-auto min-w-0">
+      <div className="px-12 py-10 w-full max-w-3xl">
+        <h1 className="text-xl font-semibold text-zinc-100 mb-8">
+          {SECTION_TITLES[activeSection]}
+        </h1>
 
-      {activeSection === 'general' && <GeneralSection />}
-      {activeSection === 'terminal' && <TerminalSection />}
-      {activeSection === 'editor' && <EditorSection />}
-      {activeSection === 'appearance' && <AppearanceSection />}
+        {activeSection === 'general' && <GeneralSection />}
+        {activeSection === 'terminal' && <TerminalSection />}
+        {activeSection === 'editor' && <EditorSection />}
+        {activeSection === 'appearance' && <AppearanceSection />}
+      </div>
     </div>
   )
 }

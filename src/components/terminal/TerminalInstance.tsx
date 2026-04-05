@@ -11,78 +11,85 @@ interface Props {
 
 const openTerminals = new Map<string, { term: Terminal; fit: FitAddon }>()
 
+export function destroyTerminalInstance(terminalId: string): void {
+  const inst = openTerminals.get(terminalId)
+  if (inst) {
+    if (inst.term.element?.parentElement) {
+      inst.term.element.parentElement.removeChild(inst.term.element)
+    }
+    inst.term.dispose()
+    openTerminals.delete(terminalId)
+  }
+}
+
 export function TerminalInstance({ terminalId, accentColor, active }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
 
-    // Reuse existing xterm instance if already created
+    let term: Terminal
+    let fit: FitAddon
+
     if (openTerminals.has(terminalId)) {
-      const { term, fit } = openTerminals.get(terminalId)!
+      // Reuse existing xterm instance — re-attach to DOM
+      const inst = openTerminals.get(terminalId)!
+      term = inst.term
+      fit = inst.fit
       containerRef.current.appendChild(term.element!)
-      if (active) {
-        fit.fit()
-        term.focus()
-      }
-      return () => {
-        // Detach from DOM but keep alive
-        if (term.element?.parentElement) {
-          term.element.parentElement.removeChild(term.element)
-        }
-      }
+    } else {
+      // Create new xterm instance
+      term = new Terminal({
+        fontFamily: '"JetBrains Mono", monospace',
+        fontSize: 12,
+        lineHeight: 1.0,
+        theme: {
+          background: '#09090b',
+          foreground: '#e4e4e7',
+          cursor: '#ffffff',
+          cursorAccent: '#09090b',
+          black: '#18181b',
+          red: '#f87171',
+          green: '#4ade80',
+          yellow: '#fbbf24',
+          blue: '#60a5fa',
+          magenta: '#c084fc',
+          cyan: '#22d3ee',
+          white: '#e4e4e7',
+          brightBlack: '#3f3f46',
+          brightRed: '#fca5a5',
+          brightGreen: '#86efac',
+          brightYellow: '#fde68a',
+          brightBlue: '#93c5fd',
+          brightMagenta: '#d8b4fe',
+          brightCyan: '#67e8f9',
+          brightWhite: '#f4f4f5',
+        },
+        cursorStyle: 'block',
+        cursorBlink: true,
+        allowTransparency: true,
+        scrollback: 5000,
+      })
+
+      fit = new FitAddon()
+      term.loadAddon(fit)
+      term.open(containerRef.current)
+      openTerminals.set(terminalId, { term, fit })
     }
 
-    const term = new Terminal({
-      fontFamily: '"JetBrains Mono", monospace',
-      fontSize: 13,
-      lineHeight: 1.5,
-      theme: {
-        background: '#09090b',       // zinc-950
-        foreground: '#e4e4e7',       // zinc-200
-        cursor: accentColor,
-        cursorAccent: '#09090b',
-        black: '#18181b',
-        red: '#f87171',
-        green: '#4ade80',
-        yellow: '#fbbf24',
-        blue: '#60a5fa',
-        magenta: '#c084fc',
-        cyan: '#22d3ee',
-        white: '#e4e4e7',
-        brightBlack: '#3f3f46',
-        brightRed: '#fca5a5',
-        brightGreen: '#86efac',
-        brightYellow: '#fde68a',
-        brightBlue: '#93c5fd',
-        brightMagenta: '#d8b4fe',
-        brightCyan: '#67e8f9',
-        brightWhite: '#f4f4f5',
-      },
-      cursorBlink: true,
-      allowTransparency: true,
-      scrollback: 5000,
-    })
-
-    const fit = new FitAddon()
-    term.loadAddon(fit)
-    term.open(containerRef.current)
+    // Always (re-)register listeners — strict mode unmount/remount disposes them,
+    // so we must re-add them even when reusing an existing xterm instance.
     fit.fit()
-    term.focus()
+    if (active) term.focus()
 
-    openTerminals.set(terminalId, { term, fit })
-
-    // Send user input to main process
     const disposeInput = term.onData((data) => {
       window.electron.writeTerminal(terminalId, data)
     })
 
-    // Receive output from main process
     const unsubscribe = window.electron.onTerminalData((id, data) => {
       if (id === terminalId) term.write(data)
     })
 
-    // Resize on container size change
     const resizeObserver = new ResizeObserver(() => {
       fit.fit()
       window.electron.resizeTerminal(terminalId, term.cols, term.rows)
@@ -93,6 +100,10 @@ export function TerminalInstance({ terminalId, accentColor, active }: Props) {
       disposeInput.dispose()
       unsubscribe()
       resizeObserver.disconnect()
+      // Detach from DOM but keep the instance alive for tab switching
+      if (term.element?.parentElement) {
+        term.element.parentElement.removeChild(term.element)
+      }
     }
   }, [terminalId, accentColor])
 

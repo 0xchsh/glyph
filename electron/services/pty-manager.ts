@@ -81,6 +81,14 @@ export function resizePty(terminalId: string, cols: number, rows: number): void 
   instances.get(terminalId)?.pty.resize(cols, rows)
 }
 
+export function destroyPty(terminalId: string): void {
+  const inst = instances.get(terminalId)
+  if (inst) {
+    inst.pty.kill()
+    instances.delete(terminalId)
+  }
+}
+
 export function destroyProjectPtys(projectId: string): void {
   for (const [id, inst] of instances) {
     if (inst.projectId === projectId) {

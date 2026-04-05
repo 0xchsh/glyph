@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { File, Folder, FolderOpen } from '@phosphor-icons/react'
+import { useEditorStore } from '../../stores/editor-store'
 
 interface DirEntry {
   name: string
@@ -10,9 +11,11 @@ interface DirEntry {
 interface FileTreeNodeProps {
   entry: DirEntry
   depth: number
+  projectId: string
 }
 
-function FileTreeNode({ entry, depth }: FileTreeNodeProps) {
+function FileTreeNode({ entry, depth, projectId }: FileTreeNodeProps) {
+  const { openFile } = useEditorStore()
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -24,7 +27,7 @@ function FileTreeNode({ entry, depth }: FileTreeNodeProps) {
 
   const handleClick = async () => {
     if (!entry.isDirectory) {
-      console.log('open file:', entry.path)
+      openFile(projectId, entry.path)
       return
     }
 
@@ -79,7 +82,7 @@ function FileTreeNode({ entry, depth }: FileTreeNodeProps) {
             </div>
           ) : (
             children.map((child) => (
-              <FileTreeNode key={child.path} entry={child} depth={depth + 1} />
+              <FileTreeNode key={child.path} entry={child} depth={depth + 1} projectId={projectId} />
             ))
           )}
         </div>
@@ -97,9 +100,10 @@ function sortEntries(entries: DirEntry[]): DirEntry[] {
 
 interface FileTreeProps {
   projectPath: string
+  projectId: string
 }
 
-export function FileTree({ projectPath }: FileTreeProps) {
+export function FileTree({ projectPath, projectId }: FileTreeProps) {
   const [rootEntries, setRootEntries] = useState<DirEntry[] | null>(null)
 
   useEffect(() => {
@@ -123,7 +127,7 @@ export function FileTree({ projectPath }: FileTreeProps) {
   return (
     <div className="py-1">
       {rootEntries.map((entry) => (
-        <FileTreeNode key={entry.path} entry={entry} depth={0} />
+        <FileTreeNode key={entry.path} entry={entry} depth={0} projectId={projectId} />
       ))}
     </div>
   )

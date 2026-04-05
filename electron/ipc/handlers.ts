@@ -1,7 +1,8 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { readFile, writeFile, readdir } from 'fs/promises'
 import { join } from 'path'
-import { createPty, writePty, resizePty } from '../services/pty-manager'
+import { randomUUID } from 'crypto'
+import { createPty, writePty, resizePty, destroyPty, destroyProjectPtys } from '../services/pty-manager'
 
 export function registerIpcHandlers(win: BrowserWindow): void {
   // File picker
@@ -37,7 +38,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle(
     'terminal:create',
     (_, { projectId, projectPath, type }: { projectId: string; projectPath: string; type: 'shell' | 'claude' | 'codex' }) => {
-      const terminalId = crypto.randomUUID()
+      const terminalId = randomUUID()
       createPty(terminalId, projectId, projectPath, type, win)
       return terminalId
     }
@@ -53,4 +54,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       resizePty(terminalId, cols, rows)
     }
   )
+
+  ipcMain.handle('terminal:kill', (_, { terminalId }: { terminalId: string }) => {
+    destroyPty(terminalId)
+  })
+
+  ipcMain.handle('project:remove', (_, { projectId }: { projectId: string }) => {
+    destroyProjectPtys(projectId)
+  })
 }

@@ -5,14 +5,14 @@ export function StartScreen() {
   const { openFolder, cloneFromUrl, quickStart } = useAddProject()
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-zinc-950 gap-12">
+    <div className="drag-region flex-1 flex flex-col items-center justify-center bg-zinc-950 gap-12">
       {/* Wordmark */}
-      <h1 className="text-5xl font-normal text-zinc-200 tracking-tight" style={{ fontFamily: "'Open Runde', sans-serif" }}>
+      <h1 className="drag-region text-5xl font-normal text-zinc-200 tracking-tight" style={{ fontFamily: "'Open Runde', sans-serif" }}>
         glyph
       </h1>
 
       {/* Action cards */}
-      <div className="flex gap-4">
+      <div className="no-drag flex gap-4">
         <ActionCard
           icon={<FolderOpen size={32} weight="light" />}
           title="Open project"

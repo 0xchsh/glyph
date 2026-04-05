@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, shell } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
   // Projects
@@ -13,10 +13,17 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('terminal:write', { terminalId, data }),
   resizeTerminal: (terminalId: string, cols: number, rows: number) =>
     ipcRenderer.invoke('terminal:resize', { terminalId, cols, rows }),
+  killTerminal: (terminalId: string) =>
+    ipcRenderer.invoke('terminal:kill', { terminalId }),
   onTerminalData: (callback: (terminalId: string, data: string) => void) => {
     const handler = (_: unknown, terminalId: string, data: string) => callback(terminalId, data)
     ipcRenderer.on('terminal:data', handler)
     return () => ipcRenderer.off('terminal:data', handler)
+  },
+  onTerminalExit: (callback: (terminalId: string) => void) => {
+    const handler = (_: unknown, terminalId: string) => callback(terminalId)
+    ipcRenderer.on('terminal:exit', handler)
+    return () => ipcRenderer.off('terminal:exit', handler)
   },
 
   // Files

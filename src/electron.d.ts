@@ -12,7 +12,9 @@ declare global {
       createTerminal: (projectId: string, projectPath: string, type: 'shell' | 'claude' | 'codex') => Promise<string>
       writeTerminal: (terminalId: string, data: string) => Promise<void>
       resizeTerminal: (terminalId: string, cols: number, rows: number) => Promise<void>
+      killTerminal: (terminalId: string) => Promise<void>
       onTerminalData: (callback: (terminalId: string, data: string) => void) => () => void
+      onTerminalExit: (callback: (terminalId: string) => void) => () => void
       onFileChanged: (callback: (path: string) => void) => () => void
       startDevServer: (projectId: string) => Promise<void>
       stopDevServer: (projectId: string) => Promise<void>

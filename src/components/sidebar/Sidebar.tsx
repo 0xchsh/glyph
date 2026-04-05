@@ -24,9 +24,10 @@ export function Sidebar() {
   }, [menuOpen])
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 border-r border-zinc-800" style={{ width: 240, minWidth: 200, maxWidth: 320 }}>
-      {/* Header — pt-10 clears the global drag region */}
-      <div className="no-drag flex items-center justify-between px-3.5 pt-10 pb-2 shrink-0">
+    <div className="flex flex-col h-full w-full bg-zinc-950 border-r border-zinc-800">
+      {/* Drag handle — the only window-draggable strip in the workspace */}
+      <div className="drag-region h-10 w-full shrink-0" />
+      <div className="no-drag flex items-center justify-between px-3.5 pb-2 shrink-0">
         <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
           Projects
         </span>
@@ -78,7 +79,7 @@ export function Sidebar() {
         </div>
         <div className="flex-1 overflow-y-auto px-1">
           {activeProject ? (
-            <FileTree projectPath={activeProject.path} />
+            <FileTree projectPath={activeProject.path} projectId={activeProject.id} />
           ) : (
             <p className="text-xs text-zinc-600 px-3 py-2">
               Open a project to see files

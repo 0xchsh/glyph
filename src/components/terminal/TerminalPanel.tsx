@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useRef } from 'react'
 import { Plus, X, Terminal as TerminalIcon } from '@phosphor-icons/react'
 import { useTerminalStore, TerminalType, TerminalTab } from '../../stores/terminal-store'
 import { useActiveProject } from '../../stores/project-store'
-import { TerminalInstance } from './TerminalInstance'
+import { TerminalInstance, destroyTerminalInstance } from './TerminalInstance'
 
 const EMPTY_TABS: TerminalTab[] = []
 
@@ -20,6 +20,11 @@ export function TerminalPanel() {
   const tabs = useTerminalStore((s) => s.tabs[projectId] ?? EMPTY_TABS)
   const activeTabId = useTerminalStore((s) => s.activeTabId[projectId] ?? null)
 
+  // Track which project IDs we've already auto-opened a shell for.
+  // Using a Set in a ref survives strict-mode's mount→unmount→remount cycle,
+  // preventing two shells from being spawned on the same project.
+  const autoOpened = useRef(new Set<string>())
+
   const openTab = useCallback(
     async (type: TerminalType) => {
       if (!project) return
@@ -34,12 +39,35 @@ export function TerminalPanel() {
     [project, addTab]
   )
 
+  const closeTab = useCallback(
+    (tabId: string) => {
+      if (!project) return
+      window.electron.killTerminal(tabId)
+      destroyTerminalInstance(tabId)
+      removeTab(project.id, tabId)
+    },
+    [project, removeTab]
+  )
+
   // Auto-open a shell when the project becomes active and has no terminals
   useEffect(() => {
-    if (project && tabs.length === 0) {
-      openTab('shell')
-    }
+    if (!project) return
+    if (autoOpened.current.has(project.id)) return
+    const currentTabs = useTerminalStore.getState().tabs[project.id] ?? []
+    if (currentTabs.length > 0) return
+    autoOpened.current.add(project.id)
+    openTab('shell')
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for terminal process exits (e.g. user types `exit`)
+  useEffect(() => {
+    if (!project) return
+    const unsub = window.electron.onTerminalExit((terminalId) => {
+      destroyTerminalInstance(terminalId)
+      removeTab(project.id, terminalId)
+    })
+    return unsub
+  }, [project?.id, removeTab])
 
   if (!project) {
     return (
@@ -52,29 +80,29 @@ export function TerminalPanel() {
   return (
     <div className="flex flex-col h-full bg-zinc-950">
       {/* Tab bar */}
-      <div className="flex items-center gap-0.5 px-2 pt-2 pb-0 border-b border-zinc-800 shrink-0">
+      <div className="flex items-center border-b border-zinc-800 shrink-0">
         {tabs.map((tab) => (
           <div
             key={tab.id}
             onClick={() => setActiveTab(projectId, tab.id)}
             className={`
-              group flex items-center gap-1.5 px-3 py-1.5 rounded-t text-xs cursor-pointer select-none
-              transition-colors
+              group flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer select-none
+              transition-colors border-r border-zinc-800
               ${tab.id === activeTabId
-                ? 'bg-zinc-900 text-zinc-200'
-                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}
+                ? 'bg-zinc-900 text-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/40'}
             `}
           >
-            <TerminalIcon size={12} weight={tab.id === activeTabId ? 'fill' : 'regular'} />
-            <span>{tab.title}</span>
+            <TerminalIcon size={14} weight="regular" />
+            <span className="font-medium">{tab.title.toLowerCase()}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                removeTab(projectId, tab.id)
+                closeTab(tab.id)
               }}
-              className="ml-0.5 opacity-0 group-hover:opacity-100 hover:text-zinc-100 transition-opacity"
+              className="ml-1 text-zinc-500 hover:text-zinc-200 transition-colors"
             >
-              <X size={10} />
+              <X size={12} />
             </button>
           </div>
         ))}
@@ -125,7 +153,7 @@ function NewTabButton({ onSelect }: { onSelect: (type: TerminalType) => void }) 
   }, [open])
 
   return (
-    <div ref={ref} className="relative ml-1">
+    <div ref={ref} className="relative px-2 flex items-center">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center justify-center w-6 h-6 text-zinc-500 hover:text-zinc-300 rounded transition-colors"

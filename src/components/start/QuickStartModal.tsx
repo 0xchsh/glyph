@@ -116,7 +116,7 @@ export function QuickStartModal() {
             />
             <button
               onClick={handleBrowse}
-              className="no-drag px-3 py-2 text-xs text-t2 hover:text-t1 rounded-lg hover:bg-overlay transition-colors shrink-0"
+              className="no-drag px-3 py-2 text-xs text-t2 hover:text-t1 bg-overlay border border-edge rounded-lg hover:bg-overlay-60 transition-colors shrink-0"
             >
               Browse…
             </button>

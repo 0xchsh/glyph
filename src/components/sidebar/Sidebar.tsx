@@ -71,7 +71,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
       {/* Project list — fixed max height, scrollable */}
       <div className="overflow-y-auto px-2 pt-1 pb-3 shrink-0" style={{ maxHeight: 180 }}>
         {projects.length === 0 ? (
-          <p className="text-xs text-t4 px-2 py-3 text-center">
+          <p className="text-xs text-t4 px-2 py-3">
             No projects yet
           </p>
         ) : (

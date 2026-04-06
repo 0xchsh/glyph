@@ -38,7 +38,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
         </button>
       </div>
       <div className="no-drag flex items-center justify-between px-3.5 pb-2 shrink-0">
-        <span className="text-[11px] font-semibold tracking-widest text-t3">
+        <span className="text-[11px] font-semibold text-t4">
           Projects
         </span>
         <div className="flex items-center gap-1">
@@ -71,7 +71,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
       {/* Project list — fixed max height, scrollable */}
       <div className="overflow-y-auto px-2 pt-1 pb-3 shrink-0" style={{ maxHeight: 180 }}>
         {projects.length === 0 ? (
-          <p className="text-[12px] text-t4 px-2 py-3 text-center">
+          <p className="text-xs text-t4 px-2 py-3 text-center">
             No projects yet
           </p>
         ) : (
@@ -92,7 +92,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
       {/* Files section — flex-1 so it fills remaining space */}
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between px-3.5 pt-4 pb-2 shrink-0">
-          <span className="text-[11px] font-semibold tracking-widest text-t4">
+          <span className="text-[11px] font-semibold text-t4">
             Files
           </span>
           {activeProject && (

@@ -69,8 +69,8 @@ function SettingRow({
   return (
     <div className="flex items-center justify-between py-4 border-b border-edge-60">
       <div>
-        <div className="text-sm text-t1">{label}</div>
-        <div className="text-xs text-t3 mt-0.5">{description}</div>
+        <div className="text-xs font-medium text-t2">{label}</div>
+        <div className="text-xs text-t4 mt-0.5">{description}</div>
       </div>
       {control}
     </div>
@@ -267,8 +267,8 @@ function ProjectSection({ projectId }: { projectId: string }) {
       {/* Name */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-sm text-t1">Name</div>
-          <div className="text-xs text-t3 mt-0.5">Display name for this project</div>
+          <div className="text-xs font-medium text-t2">Name</div>
+          <div className="text-xs text-t4 mt-0.5">Display name for this project</div>
         </div>
         <input
           type="text"
@@ -281,8 +281,8 @@ function ProjectSection({ projectId }: { projectId: string }) {
       {/* Path */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-sm text-t1">Path</div>
-          <div className="text-xs text-t3 mt-0.5">Folder on disk</div>
+          <div className="text-xs font-medium text-t2">Path</div>
+          <div className="text-xs text-t4 mt-0.5">Folder on disk</div>
         </div>
         <input
           type="text"
@@ -296,8 +296,8 @@ function ProjectSection({ projectId }: { projectId: string }) {
       {/* Dev command */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-sm text-t1">Dev command</div>
-          <div className="text-xs text-t3 mt-0.5">Command to start the dev server</div>
+          <div className="text-xs font-medium text-t2">Dev command</div>
+          <div className="text-xs text-t4 mt-0.5">Command to start the dev server</div>
         </div>
         <input
           type="text"
@@ -311,8 +311,8 @@ function ProjectSection({ projectId }: { projectId: string }) {
       {/* Port */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-sm text-t1">Port</div>
-          <div className="text-xs text-t3 mt-0.5">Dev server port</div>
+          <div className="text-xs font-medium text-t2">Port</div>
+          <div className="text-xs text-t4 mt-0.5">Dev server port</div>
         </div>
         <span className="text-sm text-t2">{project.port}</span>
       </div>
@@ -320,8 +320,8 @@ function ProjectSection({ projectId }: { projectId: string }) {
       {/* Color palette */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-sm text-t1">Color</div>
-          <div className="text-xs text-t3 mt-0.5">Accent color for this project</div>
+          <div className="text-xs font-medium text-t2">Color</div>
+          <div className="text-xs text-t4 mt-0.5">Accent color for this project</div>
         </div>
         <div className="flex gap-2">
           {PALETTE_KEYS.map((key) => {

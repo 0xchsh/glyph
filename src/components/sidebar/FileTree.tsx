@@ -102,7 +102,7 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
         <span className="text-xs truncate leading-none flex-1">{entry.name}</span>
 
         {loading && (
-          <span className="text-t4 text-[10px] shrink-0">…</span>
+          <span className="text-t4 text-xs shrink-0">…</span>
         )}
 
         {gitIndicator && (

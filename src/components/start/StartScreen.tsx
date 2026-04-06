@@ -11,7 +11,7 @@ export function StartScreen() {
 
       <div className="flex-1 flex flex-col items-center justify-center gap-12">
         {/* Wordmark */}
-        <h1 className="text-5xl font-normal text-t1 tracking-tight" style={{ fontFamily: "'Open Runde', sans-serif" }}>
+        <h1 className="text-5xl font-normal text-t1" style={{ fontFamily: "'Open Runde', sans-serif" }}>
           glyph
         </h1>
 

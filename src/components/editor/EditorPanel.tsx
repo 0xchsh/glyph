@@ -137,7 +137,7 @@ export function EditorPanel() {
       {/* Empty state overlay */}
       {showEmpty && (
         <div className="absolute inset-0 flex items-center justify-center bg-panel z-10">
-          <p className="text-t4 text-sm">
+          <p className="text-t4 text-xs">
             {!project ? 'No project selected' : 'Select a file to open'}
           </p>
         </div>

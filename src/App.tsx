@@ -78,6 +78,11 @@ function useTheme() {
       html.classList.toggle('dark', isDark)
       html.classList.toggle('light', !isDark)
       setTimeout(() => html.classList.remove('theme-transition'), 160)
+
+      // Sync macOS window chrome (border, shadow) and backgroundColor with app theme
+      const source = colorMode === 'native' ? 'system' : colorMode
+      const bgColor = isDark ? '#09090b' : '#fafafa'
+      window.electron.setWindowTheme(source, bgColor)
     }
 
     apply()
@@ -112,46 +117,46 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-base text-t1">
-<div className="flex flex-1 min-h-0">
-        {hasProjects ? (
+      <div className="flex flex-1 min-h-0">
+        {isSettingsOpen ? (
           <>
-            {isSettingsOpen ? (
-              <>
-                <SettingsNav />
-                <SettingsContent />
-              </>
-            ) : (
-              <>
-                {/* Sidebar — hidden when collapsed, but drag strip stays for window dragging */}
-                <div
-                  style={sidebarCollapsed ? { width: 0, minWidth: 0, overflow: 'hidden' } : { width: `${sidebar.pct}%` }}
-                  className="shrink-0 transition-none"
-                >
-                  <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(v => !v)} />
-                </div>
+            <SettingsNav />
+            <SettingsContent />
+          </>
+        ) : (
+          <>
+            {/* Sidebar — always visible */}
+            <div
+              style={sidebarCollapsed ? { width: 0, minWidth: 0, overflow: 'hidden' } : { width: `${sidebar.pct}%` }}
+              className="shrink-0 transition-none"
+            >
+              <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(v => !v)} />
+            </div>
 
-                {/* Sidebar resize handle — hidden when collapsed */}
-                {!sidebarCollapsed && (
-                  <div
-                    onMouseDown={sidebar.onMouseDown}
-                    onDoubleClick={sidebar.reset}
-                    className="w-0.5 shrink-0 cursor-col-resize hover:bg-overlay active:bg-overlay transition-colors bg-edge"
-                  />
-                )}
+            {/* Sidebar resize handle */}
+            {!sidebarCollapsed && (
+              <div
+                onMouseDown={sidebar.onMouseDown}
+                onDoubleClick={sidebar.reset}
+                className="w-0.5 shrink-0 cursor-col-resize hover:bg-overlay active:bg-overlay transition-colors bg-edge"
+              />
+            )}
 
-                {/* Center — editor / browser — grows to fill remaining space */}
+            {/* Expand button shown when sidebar is collapsed */}
+            {sidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="no-drag fixed top-1.5 left-16 z-[100] flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 rounded transition-colors"
+                title="Show sidebar"
+              >
+                <SidebarIcon />
+              </button>
+            )}
+
+            {hasProjects ? (
+              <>
+                {/* Center — editor / browser */}
                 <div className="flex-1 min-w-0 min-h-0 flex flex-col relative">
-                  {/* Drag handle + collapse toggle shown in top-left when sidebar is collapsed */}
-                  {sidebarCollapsed && (
-                    <button
-                      onClick={() => setSidebarCollapsed(false)}
-                      className="no-drag fixed top-1.5 left-16 z-[100] flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 rounded transition-colors"
-                      title="Show sidebar"
-                    >
-                      <SidebarIcon />
-                    </button>
-                  )}
-                  {/* Editor — keep mounted to preserve Monaco state; hidden when browser is open */}
                   <div className={browserVisible ? 'hidden' : 'flex flex-col flex-1 min-h-0'}>
                     <EditorPanel />
                   </div>
@@ -166,17 +171,17 @@ export default function App() {
                   onDoubleClick={terminal.reset}
                   className="w-0.5 shrink-0 cursor-col-resize hover:bg-overlay active:bg-overlay transition-colors bg-edge"
                 />
+
+                {/* Terminal */}
+                <div style={{ width: `${terminal.pct}%` }} className="shrink-0">
+                  <TerminalPanel />
+                </div>
               </>
-            )}
-            {/* Right — terminal column — hidden in settings */}
-            {!isSettingsOpen && (
-              <div style={{ width: `${terminal.pct}%` }} className="shrink-0">
-                <TerminalPanel />
-              </div>
+            ) : (
+              /* No projects — welcome screen fills remaining space */
+              <StartScreen />
             )}
           </>
-        ) : (
-          <StartScreen />
         )}
       </div>
     </div>

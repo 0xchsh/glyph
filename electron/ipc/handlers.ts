@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow, nativeTheme } from 'electron'
 import { readFile, writeFile, readdir } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
@@ -18,6 +18,7 @@ const CHANNELS = [
   'project:remove', 'git:status', 'git:ignored',
   'browser:show', 'browser:hide', 'browser:setBounds',
   'browser:navigate', 'browser:back', 'browser:forward', 'browser:reload',
+  'window:setTheme',
 ]
 
 export function registerIpcHandlers(win: BrowserWindow): void {
@@ -147,4 +148,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('browser:reload', (_, { projectId }: { projectId: string }) => {
     browserReload(projectId)
   })
+
+  ipcMain.handle(
+    'window:setTheme',
+    (_, { source, bgColor }: { source: 'light' | 'dark' | 'system'; bgColor: string }) => {
+      nativeTheme.themeSource = source
+      win.setBackgroundColor(bgColor)
+    }
+  )
 }

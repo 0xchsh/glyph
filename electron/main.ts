@@ -39,6 +39,12 @@ function createWindow(): void {
     }
   })
 
+  // Clear any stale BrowserViews when the renderer (re)loads — prevents
+  // old overlays from persisting across HMR reloads or dev-server restarts.
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.getBrowserViews().forEach((v) => mainWindow?.removeBrowserView(v))
+  })
+
   if (process.env['ELECTRON_RENDERER_URL']) {
     const rendererUrl = process.env['ELECTRON_RENDERER_URL']
     // Retry loading in case Electron races ahead of the Vite dev server

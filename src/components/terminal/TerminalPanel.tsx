@@ -6,6 +6,25 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { getPaletteHex } from '../../lib/palettes'
 import { TerminalInstance, destroyTerminalInstance } from './TerminalInstance'
 
+function useIsDark(): boolean {
+  const colorMode = useSettingsStore((s) => s.colorMode)
+  const [isDark, setIsDark] = useState(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    return colorMode === 'dark' || (colorMode === 'native' && mq.matches)
+  })
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const update = () =>
+      setIsDark(colorMode === 'dark' || (colorMode === 'native' && mq.matches))
+    update()
+    if (colorMode === 'native') {
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }
+  }, [colorMode])
+  return isDark
+}
+
 const EMPTY_TABS: TerminalTab[] = []
 
 const TYPE_LABELS: Record<TerminalType, string> = {
@@ -18,6 +37,7 @@ export function TerminalPanel() {
   const project = useActiveProject()
   const { addTab, removeTab, setActiveTab } = useTerminalStore()
   const defaultShell = useSettingsStore((s) => s.defaultShell)
+  const isDark = useIsDark()
 
   const projectId = project?.id ?? ''
   const tabs = useTerminalStore((s) => s.tabs[projectId] ?? EMPTY_TABS)
@@ -126,6 +146,7 @@ export function TerminalPanel() {
               terminalId={tab.id}
               accentColor={accentColor}
               active={tab.id === activeTabId}
+              isDark={isDark}
             />
           </div>
         ))}

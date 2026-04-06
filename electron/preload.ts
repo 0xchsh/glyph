@@ -66,6 +66,10 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.off('browser:nav-update', handler)
   },
 
+  // Window
+  setWindowTheme: (source: 'light' | 'dark' | 'system', bgColor: string) =>
+    ipcRenderer.invoke('window:setTheme', { source, bgColor }),
+
   // Shell
   revealInFinder: (path: string) => shell.showItemInFolder(path),
 })

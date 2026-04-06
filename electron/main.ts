@@ -40,7 +40,15 @@ function createWindow(): void {
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    const rendererUrl = process.env['ELECTRON_RENDERER_URL']
+    // Retry loading in case Electron races ahead of the Vite dev server
+    mainWindow.webContents.on('did-fail-load', (_e, code) => {
+      // ERR_CONNECTION_REFUSED (-102) means Vite isn't ready yet
+      if (code === -102 && !mainWindow?.isDestroyed()) {
+        setTimeout(() => mainWindow?.loadURL(rendererUrl), 500)
+      }
+    })
+    mainWindow.loadURL(rendererUrl)
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }

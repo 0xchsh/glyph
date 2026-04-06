@@ -31,6 +31,8 @@ declare global {
       browserReload: (projectId: string) => Promise<void>
       onBrowserNavUpdate: (callback: (projectId: string, nav: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; isLoading: boolean }) => void) => () => void
       setWindowTheme: (source: 'light' | 'dark' | 'system', bgColor: string) => Promise<void>
+      getHomePath: () => Promise<string>
+      mkdir: (path: string) => Promise<void>
     }
   }
 }

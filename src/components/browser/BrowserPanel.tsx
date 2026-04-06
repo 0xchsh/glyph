@@ -122,7 +122,7 @@ export function BrowserPanel({ projectId }: Props) {
         </button>
 
         {/* URL bar */}
-        <div className="no-drag flex-1 flex items-center bg-overlay rounded px-2.5 py-1 gap-2 mx-1">
+        <div className="no-drag flex-1 flex items-center bg-overlay border border-edge rounded px-2.5 py-1 gap-2 mx-1">
           <Globe size={11} className="text-t4 shrink-0" />
           <input
             ref={urlInputRef}

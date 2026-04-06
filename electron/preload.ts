@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('electron', {
   // Window
   setWindowTheme: (source: 'light' | 'dark' | 'system', bgColor: string) =>
     ipcRenderer.invoke('window:setTheme', { source, bgColor }),
+  getHomePath: () => ipcRenderer.invoke('app:getHomePath'),
+  mkdir: (path: string) => ipcRenderer.invoke('fs:mkdir', { path }),
 
   // Shell
   revealInFinder: (path: string) => shell.showItemInFolder(path),

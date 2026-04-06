@@ -1,7 +1,9 @@
 import { useProjectStore } from '../stores/project-store'
+import { useModalStore } from '../stores/modal-store'
 
 export function useAddProject() {
   const { addProject } = useProjectStore()
+  const { openQuickStart } = useModalStore()
 
   const openFolder = async () => {
     const path = await window.electron.openFolderDialog()
@@ -15,9 +17,8 @@ export function useAddProject() {
     }
   }
 
-  // Placeholders — wired up when those features are built
   const cloneFromUrl = () => {}
-  const quickStart = () => {}
+  const quickStart = () => openQuickStart()
 
   return { openFolder, cloneFromUrl, quickStart }
 }

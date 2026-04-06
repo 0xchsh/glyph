@@ -132,6 +132,8 @@ body {
     appearance: none;
     background-color: var(--overlay);
     color: var(--text-1);
+    border-width: 1px;
+    border-color: var(--edge);
   }
 }
 

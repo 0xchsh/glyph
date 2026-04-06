@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { StartScreen } from './components/start/StartScreen'
+import { QuickStartModal } from './components/start/QuickStartModal'
 import { TerminalPanel } from './components/terminal/TerminalPanel'
 import { EditorPanel } from './components/editor/EditorPanel'
 import { BrowserPanel } from './components/browser/BrowserPanel'
@@ -9,6 +10,7 @@ import { SettingsContent } from './components/settings/SettingsContent'
 import { useProjectStore, useActiveProject } from './stores/project-store'
 import { useSettingsStore } from './stores/settings-store'
 import { useBrowserStore } from './stores/browser-store'
+import { useModalStore } from './stores/modal-store'
 import { getPaletteRgb, getPaletteHex } from './lib/palettes'
 
 // Panel widths stored as percentages so they scale correctly when the user zooms
@@ -109,6 +111,7 @@ export default function App() {
   const { isOpen: isSettingsOpen } = useSettingsStore()
   const activeProject = useActiveProject()
   const browserVisible = useBrowserStore((s) => s.visible[activeProject?.id ?? ''] ?? false)
+  const quickStartOpen = useModalStore((s) => s.quickStartOpen)
   const hasProjects = projects.length > 0
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -117,10 +120,14 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-base text-t1">
+      {quickStartOpen && <QuickStartModal />}
       <div className="flex flex-1 min-h-0">
         {isSettingsOpen ? (
           <>
-            <SettingsNav />
+            {/* Settings nav uses the same width as the main sidebar */}
+            <div style={{ width: `${sidebar.pct}%` }} className="shrink-0 h-full">
+              <SettingsNav />
+            </div>
             <SettingsContent />
           </>
         ) : (

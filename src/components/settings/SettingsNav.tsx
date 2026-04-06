@@ -22,10 +22,7 @@ export function SettingsNav() {
   const { projects } = useProjectStore()
 
   return (
-    <div
-      className="flex flex-col h-full bg-base overflow-y-auto"
-      style={{ width: 240, minWidth: 200, maxWidth: 320 }}
-    >
+    <div className="flex flex-col h-full w-full bg-base border-r border-edge overflow-y-auto">
       {/* Drag region spacer */}
       <div className="drag-region h-10 shrink-0" />
 

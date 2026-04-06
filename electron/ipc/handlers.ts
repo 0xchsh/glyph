@@ -1,5 +1,5 @@
-import { ipcMain, dialog, BrowserWindow, nativeTheme } from 'electron'
-import { readFile, writeFile, readdir } from 'fs/promises'
+import { ipcMain, dialog, BrowserWindow, nativeTheme, app } from 'electron'
+import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { exec } from 'child_process'
@@ -18,7 +18,7 @@ const CHANNELS = [
   'project:remove', 'git:status', 'git:ignored',
   'browser:show', 'browser:hide', 'browser:setBounds',
   'browser:navigate', 'browser:back', 'browser:forward', 'browser:reload',
-  'window:setTheme',
+  'window:setTheme', 'app:getHomePath', 'fs:mkdir',
 ]
 
 export function registerIpcHandlers(win: BrowserWindow): void {
@@ -147,6 +147,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('browser:reload', (_, { projectId }: { projectId: string }) => {
     browserReload(projectId)
+  })
+
+  ipcMain.handle('app:getHomePath', () => app.getPath('home'))
+
+  ipcMain.handle('fs:mkdir', async (_, { path }: { path: string }) => {
+    await mkdir(path, { recursive: true })
   })
 
   ipcMain.handle(

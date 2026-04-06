@@ -2,9 +2,28 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { readFile, writeFile, readdir } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import { createPty, writePty, resizePty, destroyPty, destroyProjectPtys } from '../services/pty-manager'
+import {
+  showBrowser, hideBrowser, setBrowserBounds,
+  navigateBrowser, browserBack, browserForward, browserReload,
+} from '../services/browser-manager'
+
+const execAsync = promisify(exec)
+
+const CHANNELS = [
+  'dialog:openFolder', 'file:read', 'file:write', 'file:readDir',
+  'terminal:create', 'terminal:write', 'terminal:resize', 'terminal:kill',
+  'project:remove', 'git:status', 'git:ignored',
+  'browser:show', 'browser:hide', 'browser:setBounds',
+  'browser:navigate', 'browser:back', 'browser:forward', 'browser:reload',
+]
 
 export function registerIpcHandlers(win: BrowserWindow): void {
+  // Remove any existing handlers before re-registering (prevents crash on macOS activate)
+  CHANNELS.forEach((ch) => ipcMain.removeHandler(ch))
+
   // File picker
   ipcMain.handle('dialog:openFolder', async () => {
     const result = await dialog.showOpenDialog(win, {
@@ -61,5 +80,71 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('project:remove', (_, { projectId }: { projectId: string }) => {
     destroyProjectPtys(projectId)
+  })
+
+  // Git
+  ipcMain.handle('git:status', async (_, { projectPath }: { projectPath: string }) => {
+    try {
+      const { stdout } = await execAsync('git status --porcelain', { cwd: projectPath })
+      const result: Record<string, string> = {}
+      for (const line of stdout.split('\n')) {
+        if (!line.trim()) continue
+        const xy = line.slice(0, 2)
+        const file = line.slice(3).trim()
+        // Handle renamed files (old -> new)
+        const actualFile = file.includes(' -> ') ? file.split(' -> ')[1] : file
+        result[actualFile] = xy
+      }
+      return result
+    } catch {
+      return {}
+    }
+  })
+
+  ipcMain.handle('git:ignored', async (_, { projectPath }: { projectPath: string }) => {
+    try {
+      const { stdout } = await execAsync(
+        'git ls-files --others --ignored --exclude-standard',
+        { cwd: projectPath }
+      )
+      return stdout.split('\n').filter(Boolean)
+    } catch {
+      return []
+    }
+  })
+
+  // Browser
+  ipcMain.handle(
+    'browser:show',
+    (_, { projectId, url, bounds }: { projectId: string; url: string; bounds: { x: number; y: number; width: number; height: number } }) => {
+      showBrowser(projectId, win, url, bounds)
+    }
+  )
+
+  ipcMain.handle('browser:hide', (_, { projectId }: { projectId: string }) => {
+    hideBrowser(projectId, win)
+  })
+
+  ipcMain.handle(
+    'browser:setBounds',
+    (_, { projectId, bounds }: { projectId: string; bounds: { x: number; y: number; width: number; height: number } }) => {
+      setBrowserBounds(projectId, bounds)
+    }
+  )
+
+  ipcMain.handle('browser:navigate', (_, { projectId, url }: { projectId: string; url: string }) => {
+    navigateBrowser(projectId, url)
+  })
+
+  ipcMain.handle('browser:back', (_, { projectId }: { projectId: string }) => {
+    browserBack(projectId)
+  })
+
+  ipcMain.handle('browser:forward', (_, { projectId }: { projectId: string }) => {
+    browserForward(projectId)
+  })
+
+  ipcMain.handle('browser:reload', (_, { projectId }: { projectId: string }) => {
+    browserReload(projectId)
   })
 }

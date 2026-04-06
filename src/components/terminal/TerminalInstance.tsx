@@ -122,7 +122,7 @@ export function TerminalInstance({ terminalId, accentColor, active }: Props) {
     <div
       ref={containerRef}
       className="h-full w-full"
-      style={{ padding: '8px 4px' }}
+      style={{ padding: '4px 8px', background: '#09090b' }}
     />
   )
 }

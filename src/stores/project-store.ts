@@ -1,12 +1,12 @@
 import { create } from 'zustand'
-import { assignColor } from '../lib/colors'
+import { PaletteKey, PALETTE_KEYS } from '../lib/palettes'
 
 export interface GlyphProject {
   id: string
   name: string
   path: string
   port: number
-  color: string
+  palette: PaletteKey
   icon: 'auto' | string
   devCommand: string | null
   openFiles: string[]
@@ -37,7 +37,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       name,
       path,
       port: nextPort++,
-      color: assignColor(projects.length),
+      palette: 'zinc',
       icon: 'auto',
       devCommand: null,
       openFiles: [],

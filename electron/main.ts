@@ -13,7 +13,6 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     backgroundColor: '#09090b', // zinc-950
-    show: false,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -22,13 +21,26 @@ function createWindow(): void {
     },
   })
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow!.show()
+  // Handle zoom manually to suppress the native Chromium dimensions overlay
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (!input.meta || input.type !== 'keyDown') return
+    const key = input.key
+    if (key === '=' || key === '+') {
+      event.preventDefault()
+      const z = mainWindow!.webContents.getZoomFactor()
+      mainWindow!.webContents.setZoomFactor(Math.min(3, z + 0.1))
+    } else if (key === '-') {
+      event.preventDefault()
+      const z = mainWindow!.webContents.getZoomFactor()
+      mainWindow!.webContents.setZoomFactor(Math.max(0.3, z - 0.1))
+    } else if (key === '0') {
+      event.preventDefault()
+      mainWindow!.webContents.setZoomFactor(1.0)
+    }
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }

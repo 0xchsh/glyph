@@ -33,6 +33,72 @@
   font-display: swap;
 }
 
+/* ── Theme tokens ────────────────────────────────────────────── */
+
+:root, .dark {
+  --accent-hex: #71717a;   /* overridden per-project via JS */
+
+  /* Surfaces — tinted via color-mix, updated reactively when --accent-hex changes */
+  --bg-base:    color-mix(in srgb, #09090b 93%, var(--accent-hex) 7%);
+  --bg-panel:   color-mix(in srgb, #18181b 95%, var(--accent-hex) 5%);
+
+  /* Overlay — solid and opacity variants (all full color values, no CSS-var tricks) */
+  --overlay:    #27272a;
+  --overlay-30: rgba(39, 39, 42, 0.30);
+  --overlay-50: rgba(39, 39, 42, 0.50);
+  --overlay-60: rgba(39, 39, 42, 0.60);
+
+  /* Edge (borders) */
+  --edge:       #27272a;
+  --edge-60:    rgba(39, 39, 42, 0.60);
+
+  /* Text */
+  --text-1:     #f4f4f5;
+  --text-2:     #a1a1aa;
+  --text-3:     #71717a;
+  --text-4:     #52525b;
+
+  /* Accent opacity levels — auto-update via color-mix when --accent-hex changes */
+  --accent-10:  color-mix(in srgb, transparent 90%, var(--accent-hex) 10%);
+
+  /* Accent-tinted edge + icon colors */
+  --edge-accent:  color-mix(in srgb, #27272a 55%, var(--accent-hex) 45%);
+  --icon-accent:  color-mix(in srgb, #71717a 35%, var(--accent-hex) 65%);
+}
+
+.light {
+  --bg-base:    color-mix(in srgb, #fafafa 93%, var(--accent-hex) 7%);
+  --bg-panel:   color-mix(in srgb, #ffffff 95%, var(--accent-hex) 5%);
+
+  --overlay:    #f4f4f5;
+  --overlay-30: rgba(244, 244, 245, 0.30);
+  --overlay-50: rgba(244, 244, 245, 0.50);
+  --overlay-60: rgba(244, 244, 245, 0.60);
+
+  --edge:       #e4e4e7;
+  --edge-60:    rgba(228, 228, 231, 0.60);
+
+  --text-1:     #18181b;
+  --text-2:     #52525b;
+  --text-3:     #71717a;
+  --text-4:     #a1a1aa;
+
+  --accent-10:  color-mix(in srgb, transparent 90%, var(--accent-hex) 10%);
+
+  /* Accent-tinted edge + icon colors */
+  --edge-accent:  color-mix(in srgb, #e4e4e7 55%, var(--accent-hex) 45%);
+  --icon-accent:  color-mix(in srgb, #71717a 35%, var(--accent-hex) 65%);
+}
+
+/* ── Theme transition ────────────────────────────────────────── */
+
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease !important;
+}
+
 /* ── Base ───────────────────────────────────────────────────── */
 
 *, *::before, *::after {
@@ -49,18 +115,27 @@ html, body, #root {
 body {
   font-family: 'Open Runde', -apple-system, system-ui, sans-serif;
   font-size: 13px;
-  background-color: #09090b; /* zinc-950 */
-  color: #fafafa; /* zinc-50 */
+  background-color: var(--bg-base);
+  color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
 
-/* Allow text selection in editor areas */
-.selectable {
-  user-select: text;
+/* Override Tailwind's default border-color (currentColor → edge token) */
+@layer base {
+  *, *::before, *::after {
+    border-color: var(--edge);
+  }
+
+  input, select, textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--overlay);
+    color: var(--text-1);
+  }
 }
 
-/* Window drag region — apply to the top bar area */
+/* Window drag region */
 .drag-region {
   -webkit-app-region: drag;
 }
@@ -68,4 +143,9 @@ body {
 /* Buttons / interactive elements inside a drag region must opt out */
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Allow text selection in editor areas */
+.selectable {
+  user-select: text;
 }

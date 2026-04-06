@@ -1,13 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type SettingsSection = 'general' | 'terminal' | 'editor' | 'appearance'
+export type SettingsSection = 'general' | 'terminal' | 'editor' | 'appearance' | 'project'
+export type ColorMode = 'native' | 'light' | 'dark'
 
 interface SettingsStore {
   // Navigation
   isOpen: boolean
   activeSection: SettingsSection
+  activeProjectSettingsId: string | null
   openSettings: (section?: SettingsSection) => void
+  openProjectSettings: (projectId: string) => void
   closeSettings: () => void
   setSection: (section: SettingsSection) => void
 
@@ -16,9 +19,10 @@ interface SettingsStore {
   editorFontSize: number
   editorTabSize: number
   editorWordWrap: boolean
-  defaultShell: string
+  defaultShell: 'shell' | 'claude' | 'codex'
   showHiddenFiles: boolean
   autoOpenTerminal: boolean
+  colorMode: ColorMode
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -27,26 +31,30 @@ export const useSettingsStore = create<SettingsStore>()(
       // Navigation state — not persisted but included in store
       isOpen: false,
       activeSection: 'general',
+      activeProjectSettingsId: null,
 
       openSettings: (section = 'general') =>
-        set({ isOpen: true, activeSection: section }),
+        set({ isOpen: true, activeSection: section, activeProjectSettingsId: null }),
 
-      closeSettings: () => set({ isOpen: false }),
+      openProjectSettings: (projectId) =>
+        set({ isOpen: true, activeSection: 'project', activeProjectSettingsId: projectId }),
 
-      setSection: (section) => set({ activeSection: section }),
+      closeSettings: () => set({ isOpen: false, activeProjectSettingsId: null }),
+
+      setSection: (section) => set({ activeSection: section, activeProjectSettingsId: null }),
 
       // Preferences with defaults
       terminalFontSize: 13,
       editorFontSize: 13,
       editorTabSize: 2,
       editorWordWrap: false,
-      defaultShell: '',
+      defaultShell: 'shell',
       showHiddenFiles: false,
       autoOpenTerminal: true,
+      colorMode: 'dark',
     }),
     {
       name: 'glyph-settings',
-      // Only persist preferences, not navigation state
       partialize: (state) => ({
         terminalFontSize: state.terminalFontSize,
         editorFontSize: state.editorFontSize,
@@ -55,6 +63,7 @@ export const useSettingsStore = create<SettingsStore>()(
         defaultShell: state.defaultShell,
         showHiddenFiles: state.showHiddenFiles,
         autoOpenTerminal: state.autoOpenTerminal,
+        colorMode: state.colorMode,
       }),
     }
   )

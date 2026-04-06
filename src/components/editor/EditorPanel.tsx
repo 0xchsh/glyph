@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import * as monaco from 'monaco-editor'
-import { X } from '@phosphor-icons/react'
+import { X, Globe } from '@phosphor-icons/react'
 import { useEditorStore } from '../../stores/editor-store'
 import { useActiveProject } from '../../stores/project-store'
+import { useBrowserStore } from '../../stores/browser-store'
 
 const EMPTY_FILES: string[] = []
 
@@ -38,7 +39,9 @@ function getOrCreateModel(path: string, content: string): monaco.editor.ITextMod
 
 export function EditorPanel() {
   const project = useActiveProject()
-  const { closeFile, setActiveFile, setFileContent } = useEditorStore()
+  const { closeFile, setActiveFile, setFileContent, reorderFiles } = useEditorStore()
+  const { openBrowser } = useBrowserStore()
+  const dragIndexRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const changeListenerRef = useRef<monaco.IDisposable | null>(null)
@@ -117,67 +120,84 @@ export function EditorPanel() {
     const content = fileContents[activeFile] ?? ''
     const model = getOrCreateModel(activeFile, content)
 
-    // Only switch if different model
     if (editor.getModel() !== model) {
       editor.setModel(model)
     }
 
-    // Re-register change listener for the active file
     changeListenerRef.current?.dispose()
     changeListenerRef.current = model.onDidChangeContent(() => {
       setFileContent(activeFile, model.getValue())
     })
   }, [activeFile, fileContents, setFileContent])
 
-  if (!project) {
-    return (
-      <div className="flex h-full items-center justify-center bg-zinc-900">
-        <p className="text-zinc-600 text-sm">No project selected</p>
-      </div>
-    )
-  }
-
-  if (openFiles.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center bg-zinc-900">
-        <p className="text-zinc-600 text-sm">Select a file to open</p>
-      </div>
-    )
-  }
+  const showEmpty = !project || openFiles.length === 0
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950">
-      {/* Tab bar */}
-      <div className="flex items-center bg-zinc-950 border-b border-zinc-800 overflow-x-auto shrink-0 scrollbar-none">
-        {openFiles.map((path) => {
-          const name = path.split('/').pop() ?? path
-          const isActive = path === activeFile
-          return (
-            <div
-              key={path}
-              onClick={() => setActiveFile(projectId, path)}
-              title={path}
-              className={`
-                group flex items-center gap-1.5 px-3 py-2 text-xs cursor-pointer select-none shrink-0
-                border-r border-zinc-800 transition-colors
-                ${isActive
-                  ? 'bg-zinc-900 text-zinc-200 border-b border-b-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}
-              `}
-            >
-              <span className="max-w-[140px] truncate">{name}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  closeFile(projectId, path)
+    <div className="relative flex flex-col h-full bg-base">
+      {/* Empty state overlay */}
+      {showEmpty && (
+        <div className="absolute inset-0 flex items-center justify-center bg-panel z-10">
+          <p className="text-t4 text-sm">
+            {!project ? 'No project selected' : 'Select a file to open'}
+          </p>
+        </div>
+      )}
+
+      {/* Tab bar — relative + z-20 so it sits above the empty state overlay */}
+      <div className="relative z-20 flex items-stretch bg-base border-b border-edge shrink-0 h-10">
+        <div className="flex items-center overflow-x-auto flex-1 scrollbar-none">
+          {openFiles.map((path, index) => {
+            const name = path.split('/').pop() ?? path
+            const isActive = path === activeFile
+            return (
+              <div
+                key={path}
+                draggable
+                onClick={() => setActiveFile(projectId, path)}
+                onDragStart={() => { dragIndexRef.current = index }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+                    reorderFiles(projectId, dragIndexRef.current, index)
+                  }
+                  dragIndexRef.current = null
                 }}
-                className="opacity-0 group-hover:opacity-100 hover:text-zinc-100 transition-opacity ml-0.5"
+                title={path}
+                className={`
+                  no-drag group relative flex items-center gap-1.5 px-3 py-2 text-xs cursor-pointer select-none shrink-0
+                  border-r border-edge transition-colors
+                  ${isActive
+                    ? 'bg-panel text-t1'
+                    : 'text-t3 hover:text-t2 hover:bg-overlay-30'}
+                `}
               >
-                <X size={10} />
-              </button>
-            </div>
-          )
-        })}
+                {isActive && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />}
+                <span className="max-w-[140px] truncate">{name}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    closeFile(projectId, path)
+                  }}
+                  className="opacity-0 group-hover:opacity-100 hover:text-t1 transition-opacity ml-0.5"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        {project && (
+          <div className="no-drag flex items-center px-2 border-l border-edge shrink-0">
+            <button
+              onClick={() => openBrowser(projectId)}
+              title="Open browser"
+              className="p-1.5 text-t4 hover:text-t2 transition-colors rounded hover:bg-overlay"
+            >
+              <Globe size={13} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Monaco editor */}

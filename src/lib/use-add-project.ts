@@ -5,7 +5,14 @@ export function useAddProject() {
 
   const openFolder = async () => {
     const path = await window.electron.openFolderDialog()
-    if (path) addProject(path)
+    if (!path) return
+    const { projects, setActiveProject } = useProjectStore.getState()
+    const existing = projects.find((p) => p.path === path)
+    if (existing) {
+      setActiveProject(existing.id)
+    } else {
+      addProject(path)
+    }
   }
 
   // Placeholders — wired up when those features are built

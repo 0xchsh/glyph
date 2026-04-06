@@ -16,10 +16,20 @@ declare global {
       onTerminalData: (callback: (terminalId: string, data: string) => void) => () => void
       onTerminalExit: (callback: (terminalId: string) => void) => () => void
       onFileChanged: (callback: (path: string) => void) => () => void
+      gitStatus: (projectPath: string) => Promise<Record<string, string>>
+      gitIgnored: (projectPath: string) => Promise<string[]>
       startDevServer: (projectId: string) => Promise<void>
       stopDevServer: (projectId: string) => Promise<void>
       onDevServerStatus: (callback: (projectId: string, status: string) => void) => () => void
       revealInFinder: (path: string) => void
+      showBrowser: (projectId: string, url: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+      hideBrowser: (projectId: string) => Promise<void>
+      setBrowserBounds: (projectId: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+      navigateBrowser: (projectId: string, url: string) => Promise<void>
+      browserBack: (projectId: string) => Promise<void>
+      browserForward: (projectId: string) => Promise<void>
+      browserReload: (projectId: string) => Promise<void>
+      onBrowserNavUpdate: (callback: (projectId: string, nav: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; isLoading: boolean }) => void) => () => void
     }
   }
 }

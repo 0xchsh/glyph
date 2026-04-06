@@ -9,6 +9,7 @@ interface EditorStore {
   closeFile: (projectId: string, path: string) => void
   setActiveFile: (projectId: string, path: string) => void
   setFileContent: (path: string, content: string) => void
+  reorderFiles: (projectId: string, fromIndex: number, toIndex: number) => void
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -63,4 +64,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   setFileContent: (path, content) =>
     set((s) => ({ fileContents: { ...s.fileContents, [path]: content } })),
+
+  reorderFiles: (projectId, fromIndex, toIndex) =>
+    set((s) => {
+      const files = [...(s.openFiles[projectId] ?? [])]
+      const [moved] = files.splice(fromIndex, 1)
+      files.splice(toIndex, 0, moved)
+      return { openFiles: { ...s.openFiles, [projectId]: files } }
+    }),
 }))

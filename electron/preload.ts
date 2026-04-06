@@ -45,6 +45,27 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.off('devserver:status', handler)
   },
 
+  // Git
+  gitStatus: (projectPath: string) => ipcRenderer.invoke('git:status', { projectPath }),
+  gitIgnored: (projectPath: string) => ipcRenderer.invoke('git:ignored', { projectPath }),
+
+  // Browser
+  showBrowser: (projectId: string, url: string, bounds: { x: number; y: number; width: number; height: number }) =>
+    ipcRenderer.invoke('browser:show', { projectId, url, bounds }),
+  hideBrowser: (projectId: string) => ipcRenderer.invoke('browser:hide', { projectId }),
+  setBrowserBounds: (projectId: string, bounds: { x: number; y: number; width: number; height: number }) =>
+    ipcRenderer.invoke('browser:setBounds', { projectId, bounds }),
+  navigateBrowser: (projectId: string, url: string) => ipcRenderer.invoke('browser:navigate', { projectId, url }),
+  browserBack: (projectId: string) => ipcRenderer.invoke('browser:back', { projectId }),
+  browserForward: (projectId: string) => ipcRenderer.invoke('browser:forward', { projectId }),
+  browserReload: (projectId: string) => ipcRenderer.invoke('browser:reload', { projectId }),
+  onBrowserNavUpdate: (callback: (projectId: string, nav: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; isLoading: boolean }) => void) => {
+    const handler = (_: unknown, projectId: string, nav: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; isLoading: boolean }) =>
+      callback(projectId, nav)
+    ipcRenderer.on('browser:nav-update', handler)
+    return () => ipcRenderer.off('browser:nav-update', handler)
+  },
+
   // Shell
   revealInFinder: (path: string) => shell.showItemInFolder(path),
 })

@@ -42,7 +42,7 @@ export function SettingsNav() {
 
       {/* Global settings */}
       <div className="px-3.5 pb-2 shrink-0">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-t4">
+        <span className="text-[11px] font-semibold tracking-widest text-t4">
           Settings
         </span>
       </div>
@@ -70,7 +70,7 @@ export function SettingsNav() {
       {projects.length > 0 && (
         <>
           <div className="px-3.5 pt-5 pb-2 shrink-0">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-t4">
+            <span className="text-[11px] font-semibold tracking-widest text-t4">
               Projects
             </span>
           </div>

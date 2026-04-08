@@ -72,6 +72,8 @@ contextBridge.exposeInMainWorld('electron', {
   getHomePath: () => ipcRenderer.invoke('app:getHomePath'),
   mkdir: (path: string) => ipcRenderer.invoke('fs:mkdir', { path }),
 
-  // Shell
+  // Shell / file ops
   revealInFinder: (path: string) => shell.showItemInFolder(path),
+  renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('file:rename', { oldPath, newPath }),
+  deleteFile: (path: string) => ipcRenderer.invoke('file:delete', { path }),
 })

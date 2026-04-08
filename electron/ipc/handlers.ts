@@ -1,5 +1,5 @@
-import { ipcMain, dialog, BrowserWindow, nativeTheme, app } from 'electron'
-import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
+import { ipcMain, dialog, BrowserWindow, nativeTheme, app, shell } from 'electron'
+import { readFile, writeFile, readdir, mkdir, rename, rm } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { exec } from 'child_process'
@@ -14,6 +14,7 @@ const execAsync = promisify(exec)
 
 const CHANNELS = [
   'dialog:openFolder', 'file:read', 'file:write', 'file:readDir',
+  'file:rename', 'file:delete',
   'terminal:create', 'terminal:write', 'terminal:resize', 'terminal:kill',
   'project:remove', 'git:status', 'git:ignored',
   'browser:show', 'browser:hide', 'browser:setBounds',
@@ -41,6 +42,15 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('file:write', async (_, { path, content }: { path: string; content: string }) => {
     await writeFile(path, content, 'utf8')
+  })
+
+  ipcMain.handle('file:rename', async (_, { oldPath, newPath }: { oldPath: string; newPath: string }) => {
+    await rename(oldPath, newPath)
+  })
+
+  ipcMain.handle('file:delete', async (_, { path }: { path: string }) => {
+    // trashItem moves to Trash rather than permanently deleting
+    await shell.trashItem(path)
   })
 
   ipcMain.handle('file:readDir', async (_, { path }: { path: string }) => {

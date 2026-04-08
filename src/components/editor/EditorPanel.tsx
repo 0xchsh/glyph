@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import * as monaco from 'monaco-editor'
-import { X, Globe } from '@phosphor-icons/react'
+import { X } from '@phosphor-icons/react'
 import { useEditorStore } from '../../stores/editor-store'
 import { useActiveProject } from '../../stores/project-store'
-import { useBrowserStore } from '../../stores/browser-store'
 
 const EMPTY_FILES: string[] = []
 
@@ -40,7 +39,6 @@ function getOrCreateModel(path: string, content: string): monaco.editor.ITextMod
 export function EditorPanel() {
   const project = useActiveProject()
   const { closeFile, setActiveFile, setFileContent, reorderFiles } = useEditorStore()
-  const { openBrowser } = useBrowserStore()
   const dragIndexRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -187,17 +185,6 @@ export function EditorPanel() {
             )
           })}
         </div>
-        {project && (
-          <div className="no-drag flex items-center px-2 border-l border-edge shrink-0">
-            <button
-              onClick={() => openBrowser(projectId)}
-              title="Open browser"
-              className="p-1.5 text-t4 hover:text-t2 transition-colors rounded hover:bg-overlay"
-            >
-              <Globe size={13} />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Monaco editor */}

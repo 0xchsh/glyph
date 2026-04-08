@@ -1,6 +1,7 @@
-import { app, BrowserWindow, BrowserView, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc/handlers'
+import { clearAllBrowserViews } from './services/browser-manager'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -21,6 +22,10 @@ function createWindow(): void {
     },
   })
 
+  mainWindow.webContents.on('console-message', (_event, _level, message) => {
+    console.log('[renderer]', message)
+  })
+
   // Handle zoom manually to suppress the native Chromium dimensions overlay
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (!input.meta || input.type !== 'keyDown') return
@@ -39,10 +44,10 @@ function createWindow(): void {
     }
   })
 
-  // Clear any stale BrowserViews when the renderer (re)loads — prevents
+  // Clear any stale browser views when the renderer (re)loads — prevents
   // old overlays from persisting across HMR reloads or dev-server restarts.
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow?.getBrowserViews().forEach((v) => mainWindow?.removeBrowserView(v))
+    if (mainWindow) clearAllBrowserViews(mainWindow)
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {

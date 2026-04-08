@@ -23,6 +23,7 @@ interface SettingsStore {
   showHiddenFiles: boolean
   autoOpenTerminal: boolean
   colorMode: ColorMode
+  confirmDelete: boolean
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -52,6 +53,7 @@ export const useSettingsStore = create<SettingsStore>()(
       showHiddenFiles: false,
       autoOpenTerminal: true,
       colorMode: 'dark',
+      confirmDelete: true,
     }),
     {
       name: 'glyph-settings',
@@ -64,6 +66,7 @@ export const useSettingsStore = create<SettingsStore>()(
         showHiddenFiles: state.showHiddenFiles,
         autoOpenTerminal: state.autoOpenTerminal,
         colorMode: state.colorMode,
+        confirmDelete: state.confirmDelete,
       }),
     }
   )

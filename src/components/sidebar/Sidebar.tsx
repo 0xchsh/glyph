@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useProjectStore, useActiveProject } from '../../stores/project-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useAddProject } from '../../lib/use-add-project'
@@ -13,25 +13,15 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
   const { openFolder, cloneFromUrl, quickStart } = useAddProject()
   const [menuOpen, setMenuOpen] = useState(false)
   const [collapseKey, setCollapseKey] = useState(0)
-  const menuRef = useRef<HTMLDivElement>(null)
   const collapseAll = useCallback(() => setCollapseKey(k => k + 1), [])
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
   return (
-    <div className="flex flex-col h-full w-full bg-base border-r border-edge">
+    <div className="flex flex-col h-full w-full bg-base overflow-hidden">
       {/* Drag handle with collapse toggle */}
-      <div className="drag-region h-10 w-full shrink-0 relative">
+      <div className="drag-region h-10 w-full shrink-0 relative border-b border-edge">
         <button
           onClick={onToggleCollapse}
-          className="no-drag absolute left-16 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 rounded transition-colors"
+          className="no-drag absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 rounded transition-colors"
           title="Collapse sidebar"
         >
           <SidebarIcon />
@@ -42,22 +32,25 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
           Projects
         </span>
         <div className="flex items-center gap-1">
-        <div ref={menuRef} className="relative flex items-center">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="text-icon-accent hover:text-accent transition-colors p-0.5 rounded"
-            title="Add project"
-          >
-            <Plus size={14} weight="bold" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 flex flex-col bg-panel border border-edge rounded-lg shadow-xl z-50 w-44 overflow-hidden">
-              <MenuItem icon={<FolderOpen size={13} />} label="Open folder" onClick={() => { openFolder(); setMenuOpen(false) }} />
-              <MenuItem icon={<Globe size={13} />} label="Clone from URL" onClick={() => { cloneFromUrl(); setMenuOpen(false) }} />
-              <MenuItem icon={<Lightning size={13} />} label="Quick start" onClick={() => { quickStart(); setMenuOpen(false) }} />
-            </div>
-          )}
-        </div>
+          <div className="relative flex items-center">
+            {menuOpen && (
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            )}
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="text-icon-accent hover:text-accent transition-colors p-0.5 rounded"
+              title="Add project"
+            >
+              <Plus size={14} weight="bold" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 flex flex-col bg-panel border border-edge rounded-lg shadow-xl z-50 w-44 overflow-hidden">
+                <MenuItem icon={<FolderOpen size={13} />} label="Open folder" onClick={() => { openFolder(); setMenuOpen(false) }} />
+                <MenuItem icon={<Globe size={13} />} label="Clone from URL" onClick={() => { cloneFromUrl(); setMenuOpen(false) }} />
+                <MenuItem icon={<Lightning size={13} />} label="Quick start" onClick={() => { quickStart(); setMenuOpen(false) }} />
+              </div>
+            )}
+          </div>
           <button
             onClick={() => openSettings()}
             className="text-icon-accent hover:text-accent transition-colors p-0.5 rounded"
@@ -69,19 +62,20 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
       </div>
 
       {/* Project list — fixed max height, scrollable */}
-      <div className="overflow-y-auto px-2 pt-1 pb-3 shrink-0" style={{ maxHeight: 180 }}>
+      <div className="sidebar-scroll overflow-y-auto px-2 pt-1 pb-3 shrink-0" style={{ maxHeight: 180 }}>
         {projects.length === 0 ? (
           <p className="text-xs text-t4 px-2 py-3">
             No projects yet
           </p>
         ) : (
-          projects.map((project) => (
-            <ProjectItem
-              key={project.id}
-              project={project}
-              isActive={project.id === activeProjectId}
-              onClick={() => setActiveProject(project.id)}
-            />
+          projects.map((project, i) => (
+            <div key={project.id} style={i > 0 ? { marginTop: 4 } : undefined}>
+              <ProjectItem
+                project={project}
+                isActive={project.id === activeProjectId}
+                onClick={() => setActiveProject(project.id)}
+              />
+            </div>
           ))
         )}
       </div>
@@ -105,7 +99,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; o
             </button>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto px-1">
+        <div className="sidebar-scroll flex-1 overflow-y-auto px-1 pb-3">
           {activeProject ? (
             <FileTree key={collapseKey} projectPath={activeProject.path} projectId={activeProject.id} />
           ) : (

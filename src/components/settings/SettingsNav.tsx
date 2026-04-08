@@ -11,10 +11,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { section: 'general',    label: 'General',    icon: <Sliders size={15} /> },
-  { section: 'terminal',   label: 'Terminal',   icon: <Terminal size={15} /> },
-  { section: 'editor',     label: 'Editor',     icon: <Code size={15} /> },
-  { section: 'appearance', label: 'Appearance', icon: <PaintBrush size={15} /> },
+  { section: 'general',    label: 'General',    icon: <Sliders size={14} /> },
+  { section: 'terminal',   label: 'Terminal',   icon: <Terminal size={14} /> },
+  { section: 'editor',     label: 'Editor',     icon: <Code size={14} /> },
+  { section: 'appearance', label: 'Appearance', icon: <PaintBrush size={14} /> },
 ]
 
 export function SettingsNav() {
@@ -32,8 +32,8 @@ export function SettingsNav() {
           onClick={closeSettings}
           className="flex items-center gap-1.5 text-t2 hover:text-t1 transition-colors py-1 px-1 rounded"
         >
-          <ArrowLeft size={14} />
-          <span className="text-sm">Back</span>
+          <ArrowLeft size={12} />
+          <span className="text-xs">Back</span>
         </button>
       </div>
 

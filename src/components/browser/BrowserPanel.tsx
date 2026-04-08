@@ -1,17 +1,22 @@
 import { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
-import { ArrowLeft, ArrowRight, ArrowClockwise, X, Globe } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, ArrowClockwise, Globe } from '@phosphor-icons/react'
 import { useBrowserStore } from '../../stores/browser-store'
 
 interface Props {
   projectId: string
+  defaultUrl?: string
+  sidebarCollapsed?: boolean
 }
 
-export function BrowserPanel({ projectId }: Props) {
-  const { closeBrowser, updateNav, setSavedUrl, navState, savedUrls } = useBrowserStore()
+export function BrowserPanel({ projectId, defaultUrl, sidebarCollapsed }: Props) {
+  const { updateNav, setSavedUrl, navState, savedUrls } = useBrowserStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const [urlInput, setUrlInput] = useState('')
   const [isEditingUrl, setIsEditingUrl] = useState(true)
+
+  // Whether showBrowser has been called for this projectId mount
+  const shownRef = useRef(false)
 
   const nav = navState[projectId]
   const savedUrl = savedUrls[projectId] ?? ''
@@ -25,49 +30,65 @@ export function BrowserPanel({ projectId }: Props) {
   const getBounds = useCallback(() => {
     if (!containerRef.current) return null
     const rect = containerRef.current.getBoundingClientRect()
+    // WebContentsView.setBounds() in Electron 30+ expects physical pixels.
+    // getBoundingClientRect() returns CSS/logical pixels, so multiply by DPR.
+    const dpr = window.devicePixelRatio
+    // y < 35*dpr means layout hasn't resolved (left is also wrong, often 0)
+    if (rect.top < 35 || rect.width < 50 || rect.height < 50) return null
     return {
-      x: Math.round(rect.left),
-      y: Math.round(rect.top),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
+      x: Math.round(rect.left * dpr),
+      y: Math.round(rect.top * dpr),
+      width: Math.round(rect.width * dpr),
+      height: Math.round(rect.height * dpr),
     }
   }, [])
 
-  // Show browser on mount with initial bounds; auto-focus URL bar
+  // Cleanup only — hideBrowser on unmount / projectId change
   useLayoutEffect(() => {
-    const url = savedUrl || 'about:blank'
-    // Defer bounds reading to rAF so the flex layout has fully resolved
-    const rafId = requestAnimationFrame(() => {
-      const bounds = getBounds()
-      if (bounds) window.electron.showBrowser(projectId, url, bounds)
-    })
-    // Focus and select the URL bar so user can type immediately
-    setTimeout(() => {
-      urlInputRef.current?.focus()
-      urlInputRef.current?.select()
-    }, 50)
-
+    shownRef.current = false
     return () => {
-      cancelAnimationFrame(rafId)
+      shownRef.current = false
       window.electron.hideBrowser(projectId)
     }
-  }, [projectId]) // intentionally only runs on mount/unmount
+  }, [projectId])
 
-  // Keep bounds in sync with resize
+  // Show + keep bounds in sync via ResizeObserver.
+  // Using ResizeObserver for the initial show means we never call showBrowser
+  // with stale bounds — the callback only fires once the element has real
+  // dimensions, so the BrowserView can't cover the sidebar at x=0.
   useEffect(() => {
+    const url = savedUrl || defaultUrl || 'about:blank'
     const el = containerRef.current
     if (!el) return
 
     const update = () => {
       const bounds = getBounds()
-      if (bounds) window.electron.setBrowserBounds(projectId, bounds)
+      if (!bounds) return
+
+      if (!shownRef.current) {
+        shownRef.current = true
+        window.electron.showBrowser(projectId, url, bounds)
+      } else {
+        window.electron.setBrowserBounds(projectId, bounds)
+      }
     }
 
+    // Observing both the container (size) and body (position shift from panel drags)
     const ro = new ResizeObserver(update)
     ro.observe(el)
+    ro.observe(document.body)
 
     return () => ro.disconnect()
-  }, [projectId, getBounds])
+  }, [projectId, getBounds]) // savedUrl intentionally omitted — only used for initial nav
+
+  // Auto-focus URL bar on mount
+  useEffect(() => {
+    const id = setTimeout(() => {
+      urlInputRef.current?.focus()
+      urlInputRef.current?.select()
+    }, 50)
+    return () => clearTimeout(id)
+  }, [projectId])
 
   // Listen for nav updates from main process
   useEffect(() => {
@@ -96,7 +117,7 @@ export function BrowserPanel({ projectId }: Props) {
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col bg-base">
       {/* Browser toolbar */}
-      <div className="flex items-center gap-1 px-2 h-10 border-b border-edge shrink-0 bg-base">
+      <div className={`flex items-center gap-1 px-2 h-10 border-b border-edge shrink-0 bg-base${sidebarCollapsed ? ' !pl-[96px]' : ''}`}>
         <button
           onClick={() => window.electron.browserBack(projectId)}
           className="no-drag p-1.5 text-t3 hover:text-t1 disabled:opacity-30 disabled:cursor-default transition-colors rounded hover:bg-overlay"
@@ -145,18 +166,9 @@ export function BrowserPanel({ projectId }: Props) {
                 e.currentTarget.blur()
               }
             }}
-            className="flex-1 text-xs text-t2 bg-transparent outline-none min-w-0 selectable placeholder:text-t4"
+            className="flex-1 text-xs text-t3 bg-transparent outline-none min-w-0 selectable placeholder:text-t4"
           />
         </div>
-
-        {/* Close browser */}
-        <button
-          onClick={() => closeBrowser(projectId)}
-          title="Close browser"
-          className="no-drag p-1.5 text-t3 hover:text-t1 transition-colors rounded hover:bg-overlay"
-        >
-          <X size={14} />
-        </button>
       </div>
 
       {/* Browser content area — BrowserView is overlaid here by Electron */}

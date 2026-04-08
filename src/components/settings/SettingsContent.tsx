@@ -1,8 +1,177 @@
-import { useState } from 'react'
-import { Check } from '@phosphor-icons/react'
+import { useState, useRef, useEffect } from 'react'
+import {
+  Check,
+  Code, Terminal, Globe, Folder, GitBranch, Database, Cloud, Lightning,
+  Rocket, Flask, Atom, Cpu, Package, Wrench, Palette, GameController,
+  BookOpen, ChartBar, Lock, Robot, Broadcast, Star, Heart, Diamond,
+  Leaf, Fire, Snowflake, Sun, Moon, Camera, MusicNote, Video, Microphone,
+  MagnifyingGlass, Bug, Compass, MapPin, Fingerprint, Key, Shield,
+  Hexagon, Triangle, Circle, Square, Note, Smiley, Alien, Cat, Dog,
+  Fish, Bird, Butterfly, Flower, Tree,
+} from '@phosphor-icons/react'
 import { useSettingsStore, ColorMode } from '../../stores/settings-store'
-import { useProjectStore } from '../../stores/project-store'
+import { useProjectStore, useActiveProject, ProjectLayout } from '../../stores/project-store'
 import { PALETTES, PALETTE_KEYS, PaletteKey, getPaletteHex } from '../../lib/palettes'
+
+// ── Icon picker ───────────────────────────────────────────────────────────────
+
+type IconEntry = { name: string; component: React.ElementType; keywords: string }
+
+const ICON_LIST: IconEntry[] = [
+  { name: 'Code',          component: Code,           keywords: 'code dev' },
+  { name: 'Terminal',      component: Terminal,        keywords: 'terminal shell cli' },
+  { name: 'Globe',         component: Globe,           keywords: 'web browser internet' },
+  { name: 'Folder',        component: Folder,          keywords: 'folder files' },
+  { name: 'GitBranch',     component: GitBranch,       keywords: 'git branch version' },
+  { name: 'Database',      component: Database,        keywords: 'database db sql' },
+  { name: 'Cloud',         component: Cloud,           keywords: 'cloud deploy server' },
+  { name: 'Lightning',     component: Lightning,       keywords: 'lightning fast api' },
+  { name: 'Rocket',        component: Rocket,          keywords: 'rocket launch deploy' },
+  { name: 'Flask',         component: Flask,           keywords: 'flask test experiment' },
+  { name: 'Atom',          component: Atom,            keywords: 'atom react science' },
+  { name: 'Cpu',           component: Cpu,             keywords: 'cpu processor hardware' },
+  { name: 'Package',       component: Package,         keywords: 'package npm library' },
+  { name: 'Wrench',        component: Wrench,          keywords: 'wrench tool settings' },
+  { name: 'Palette',       component: Palette,         keywords: 'palette design color' },
+  { name: 'GameController',component: GameController,  keywords: 'game controller' },
+  { name: 'BookOpen',      component: BookOpen,        keywords: 'book docs documentation' },
+  { name: 'ChartBar',      component: ChartBar,        keywords: 'chart graph analytics data' },
+  { name: 'Lock',          component: Lock,            keywords: 'lock security auth' },
+  { name: 'Robot',         component: Robot,           keywords: 'robot ai agent bot' },
+  { name: 'Broadcast',     component: Broadcast,       keywords: 'broadcast stream signal' },
+  { name: 'Star',          component: Star,            keywords: 'star favorite' },
+  { name: 'Heart',         component: Heart,           keywords: 'heart love' },
+  { name: 'Diamond',       component: Diamond,         keywords: 'diamond gem' },
+  { name: 'Leaf',          component: Leaf,            keywords: 'leaf nature green eco' },
+  { name: 'Fire',          component: Fire,            keywords: 'fire hot' },
+  { name: 'Snowflake',     component: Snowflake,       keywords: 'snowflake cold' },
+  { name: 'Sun',           component: Sun,             keywords: 'sun light day' },
+  { name: 'Moon',          component: Moon,            keywords: 'moon night dark' },
+  { name: 'Camera',        component: Camera,          keywords: 'camera photo image' },
+  { name: 'MusicNote',     component: MusicNote,       keywords: 'music audio sound note' },
+  { name: 'Video',         component: Video,           keywords: 'video film media' },
+  { name: 'Microphone',    component: Microphone,      keywords: 'mic audio voice' },
+  { name: 'MagnifyingGlass', component: MagnifyingGlass, keywords: 'search find' },
+  { name: 'Bug',           component: Bug,             keywords: 'bug debug error' },
+  { name: 'Compass',       component: Compass,         keywords: 'compass navigate direction' },
+  { name: 'MapPin',        component: MapPin,          keywords: 'map pin location geo' },
+  { name: 'Fingerprint',   component: Fingerprint,     keywords: 'fingerprint identity auth' },
+  { name: 'Key',           component: Key,             keywords: 'key access secret' },
+  { name: 'Shield',        component: Shield,          keywords: 'shield protect security' },
+  { name: 'Hexagon',       component: Hexagon,         keywords: 'hexagon shape' },
+  { name: 'Triangle',      component: Triangle,        keywords: 'triangle shape' },
+  { name: 'Circle',        component: Circle,          keywords: 'circle shape dot' },
+  { name: 'Square',        component: Square,          keywords: 'square shape' },
+  { name: 'Note',          component: Note,            keywords: 'note text memo' },
+  { name: 'Smiley',        component: Smiley,          keywords: 'smiley emoji face' },
+  { name: 'Alien',         component: Alien,           keywords: 'alien space' },
+  { name: 'Cat',           component: Cat,             keywords: 'cat animal' },
+  { name: 'Dog',           component: Dog,             keywords: 'dog animal' },
+  { name: 'Fish',          component: Fish,            keywords: 'fish animal' },
+  { name: 'Bird',          component: Bird,            keywords: 'bird animal' },
+  { name: 'Butterfly',     component: Butterfly,       keywords: 'butterfly insect' },
+  { name: 'Flower',        component: Flower,          keywords: 'flower plant nature' },
+  { name: 'Tree',          component: Tree,            keywords: 'tree plant nature' },
+]
+
+function IconPicker({
+  value,
+  onChange,
+  accent,
+}: {
+  value: string
+  onChange: (name: string) => void
+  accent: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const filtered = query.trim()
+    ? ICON_LIST.filter(
+        (e) =>
+          e.name.toLowerCase().includes(query.toLowerCase()) ||
+          e.keywords.includes(query.toLowerCase())
+      )
+    : ICON_LIST
+
+  const selected = ICON_LIST.find((e) => e.name === value)
+  const SelectedIcon = selected?.component
+
+  return (
+    <div className="relative" ref={popoverRef}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 bg-overlay rounded text-sm text-t1 hover:bg-overlay-80 transition-colors"
+        style={{ color: value !== 'auto' ? accent : undefined }}
+      >
+        {SelectedIcon ? (
+          <SelectedIcon size={16} weight="regular" />
+        ) : (
+          <span className="text-t3 text-xs">Auto</span>
+        )}
+        <span className="text-t2 text-xs">{value !== 'auto' ? value : 'Auto (monogram)'}</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 bg-panel border border-edge rounded-xl shadow-2xl w-72 overflow-hidden">
+          <div className="p-2 border-b border-edge">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search icons…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full bg-overlay text-t1 text-xs rounded px-2.5 py-1.5 outline-none placeholder:text-t4"
+            />
+          </div>
+          <div className="grid grid-cols-9 gap-0.5 p-2 max-h-56 overflow-y-auto">
+            {/* Auto / monogram option */}
+            {!query && (
+              <button
+                onClick={() => { onChange('auto'); setOpen(false) }}
+                title="Auto (monogram)"
+                className={`flex items-center justify-center w-full aspect-square rounded text-[10px] font-bold transition-colors ${
+                  value === 'auto' ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
+                }`}
+              >
+                Ab
+              </button>
+            )}
+            {filtered.map((entry) => {
+              const Icon = entry.component
+              const isActive = value === entry.name
+              return (
+                <button
+                  key={entry.name}
+                  onClick={() => { onChange(entry.name); setOpen(false) }}
+                  title={entry.name}
+                  className={`flex items-center justify-center w-full aspect-square rounded transition-colors ${
+                    isActive ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
+                  }`}
+                  style={isActive ? { color: accent } : undefined}
+                >
+                  <Icon size={15} weight="regular" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Controls ─────────────────────────────────────────────────────────────────
 
@@ -69,7 +238,7 @@ function SettingRow({
   return (
     <div className="flex items-center justify-between py-4 border-b border-edge-60">
       <div>
-        <div className="text-xs font-medium text-t2">{label}</div>
+        <div className="text-sm font-medium text-t2">{label}</div>
         <div className="text-xs text-t4 mt-0.5">{description}</div>
       </div>
       {control}
@@ -80,7 +249,7 @@ function SettingRow({
 // ── Sections ──────────────────────────────────────────────────────────────────
 
 function GeneralSection() {
-  const { autoOpenTerminal, showHiddenFiles } = useSettingsStore()
+  const { autoOpenTerminal, showHiddenFiles, confirmDelete } = useSettingsStore()
   const set = useSettingsStore.setState
 
   return (
@@ -102,6 +271,16 @@ function GeneralSection() {
           <Toggle
             value={showHiddenFiles}
             onChange={(v) => set({ showHiddenFiles: v })}
+          />
+        }
+      />
+      <SettingRow
+        label="Confirm before delete"
+        description="Show a warning when deleting files from the file tree"
+        control={
+          <Toggle
+            value={confirmDelete}
+            onChange={(v) => set({ confirmDelete: v })}
           />
         }
       />
@@ -207,38 +386,71 @@ const COLOR_MODES: { value: ColorMode; label: string; description: string }[] = 
   { value: 'light',  label: 'Light',  description: 'Always light' },
 ]
 
+const LAYOUTS: { value: ProjectLayout; label: string; description: string }[] = [
+  { value: 'vertical',   label: 'Vertical',   description: 'Terminal on the right' },
+  { value: 'horizontal', label: 'Horizontal', description: 'Terminal on the bottom' },
+]
+
 function AppearanceSection() {
   const { colorMode } = useSettingsStore()
   const set = useSettingsStore.setState
+  const activeProject = useActiveProject()
+  const { setProjectLayout } = useProjectStore()
 
   return (
-    <SettingRow
-      label="Color mode"
-      description="Controls the light/dark appearance of the app"
-      control={
-        <div className="flex gap-1.5">
-          {COLOR_MODES.map((mode) => (
-            <button
-              key={mode.value}
-              onClick={() => set({ colorMode: mode.value })}
-              title={mode.description}
-              className={`px-3 py-1.5 text-xs rounded transition-colors ${
-                colorMode === mode.value
-                  ? 'bg-overlay text-t1'
-                  : 'text-t3 hover:text-t2 hover:bg-overlay-50'
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      }
-    />
+    <>
+      <SettingRow
+        label="Color mode"
+        description="Controls the light/dark appearance of the app"
+        control={
+          <div className="flex gap-1.5">
+            {COLOR_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => set({ colorMode: mode.value })}
+                title={mode.description}
+                className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                  colorMode === mode.value
+                    ? 'bg-overlay text-t1'
+                    : 'text-t3 hover:text-t2 hover:bg-overlay-50'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      {activeProject && (
+        <SettingRow
+          label="Layout"
+          description="Arrangement of the editor and terminal for this project"
+          control={
+            <div className="flex gap-1.5">
+              {LAYOUTS.map((layout) => (
+                <button
+                  key={layout.value}
+                  onClick={() => setProjectLayout(activeProject.id, layout.value)}
+                  title={layout.description}
+                  className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                    (activeProject.layout ?? 'vertical') === layout.value
+                      ? 'bg-overlay text-t1'
+                      : 'text-t3 hover:text-t2 hover:bg-overlay-50'
+                  }`}
+                >
+                  {layout.label}
+                </button>
+              ))}
+            </div>
+          }
+        />
+      )}
+    </>
   )
 }
 
 function ProjectSection({ projectId }: { projectId: string }) {
-  const { projects, removeProject } = useProjectStore()
+  const { projects, removeProject, setProjectIcon } = useProjectStore()
   const { closeSettings } = useSettingsStore()
   const project = projects.find((p) => p.id === projectId)
 
@@ -343,6 +555,19 @@ function ProjectSection({ projectId }: { projectId: string }) {
             )
           })}
         </div>
+      </div>
+
+      {/* Icon */}
+      <div className="flex items-center justify-between py-4 border-b border-edge-60">
+        <div>
+          <div className="text-xs font-medium text-t2">Icon</div>
+          <div className="text-xs text-t4 mt-0.5">Icon shown in the sidebar</div>
+        </div>
+        <IconPicker
+          value={project.icon ?? 'auto'}
+          onChange={(icon) => setProjectIcon(projectId, icon)}
+          accent={getPaletteHex(project.palette)}
+        />
       </div>
 
       {/* Remove */}

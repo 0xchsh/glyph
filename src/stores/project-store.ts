@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { PaletteKey, PALETTE_KEYS } from '../lib/palettes'
 
+export type ProjectLayout = 'vertical' | 'horizontal'
+
 export interface GlyphProject {
   id: string
   name: string
@@ -11,6 +13,7 @@ export interface GlyphProject {
   devCommand: string | null
   openFiles: string[]
   activeFile: string | null
+  layout: ProjectLayout
 }
 
 interface ProjectStore {
@@ -19,6 +22,8 @@ interface ProjectStore {
   setActiveProject: (id: string) => void
   addProject: (path: string) => GlyphProject
   removeProject: (id: string) => void
+  setProjectLayout: (id: string, layout: ProjectLayout) => void
+  setProjectIcon: (id: string, icon: string) => void
 }
 
 let nextPort = 3000
@@ -42,6 +47,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       devCommand: null,
       openFiles: [],
       activeFile: null,
+      layout: 'vertical',
     }
     set((state) => ({
       projects: [...state.projects, project],
@@ -59,6 +65,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           state.activeProjectId === id ? (remaining[0]?.id ?? null) : state.activeProjectId,
       }
     }),
+
+  setProjectLayout: (id, layout) =>
+    set((state) => ({
+      projects: state.projects.map((p) => (p.id === id ? { ...p, layout } : p)),
+    })),
+
+  setProjectIcon: (id, icon) =>
+    set((state) => ({
+      projects: state.projects.map((p) => (p.id === id ? { ...p, icon } : p)),
+    })),
 }))
 
 export const useActiveProject = () => {

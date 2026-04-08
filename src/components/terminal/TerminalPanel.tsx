@@ -53,7 +53,7 @@ export function TerminalPanel() {
         id: terminalId,
         type,
         projectId: project.id,
-        title: TYPE_LABELS[type],
+        title: TYPE_LABELS[type] ?? type,
       })
     },
     [project, addTab]
@@ -106,19 +106,15 @@ export function TerminalPanel() {
             key={tab.id}
             onClick={() => setActiveTab(projectId, tab.id)}
             className={`
-              no-drag group relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer select-none
+              no-drag group relative flex items-center gap-2 px-4 py-2.5 text-xs cursor-pointer select-none
               transition-colors border-r border-edge
               ${tab.id === activeTabId
                 ? 'bg-panel text-t1'
                 : 'text-t3 hover:text-t2 hover:bg-overlay-30'}
             `}
           >
-            <TerminalIcon size={14} weight="regular" />
-            <span className="font-medium">{tab.title.toLowerCase()}</span>
-            {/* Active accent underline */}
-            {tab.id === activeTabId && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
-            )}
+            <TerminalIcon size={12} weight="regular" />
+            <span className="font-medium">{(tab.title ?? tab.type).toLowerCase()}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -163,21 +159,12 @@ export function TerminalPanel() {
 
 function NewTabButton({ onSelect }: { onSelect: (type: TerminalType) => void }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
 
   return (
-    <div ref={ref} className="relative px-2 flex items-center">
+    <div className="relative px-2 flex items-center">
+      {open && (
+        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      )}
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center justify-center w-6 h-6 text-t3 hover:text-t2 rounded transition-colors"

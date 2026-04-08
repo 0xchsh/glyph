@@ -22,6 +22,8 @@ declare global {
       stopDevServer: (projectId: string) => Promise<void>
       onDevServerStatus: (callback: (projectId: string, status: string) => void) => () => void
       revealInFinder: (path: string) => void
+      renameFile: (oldPath: string, newPath: string) => Promise<void>
+      deleteFile: (path: string) => Promise<void>
       showBrowser: (projectId: string, url: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
       hideBrowser: (projectId: string) => Promise<void>
       setBrowserBounds: (projectId: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<void>

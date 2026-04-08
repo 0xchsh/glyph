@@ -36,6 +36,9 @@ function buildEnv(): Record<string, string> {
     PATH,
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
+    // Suppress zsh's end-of-line marker — it appears as a stray "%" at the top
+    // of new terminals when the PTY starts at different dimensions than xterm.js.
+    PROMPT_EOL_MARK: '',
   }
 }
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, createContext, useContext, memo } from 'react'
 import { Folder, FolderOpen } from '@phosphor-icons/react'
 import { useEditorStore } from '../../stores/editor-store'
+import { useTerminalStore } from '../../stores/terminal-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { getFileIcon } from '../../lib/file-icons'
 
@@ -60,6 +61,9 @@ function DeleteConfirmModal({
     <div className="fixed inset-0 z-[300] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onMouseDown={onCancel} />
       <div
+        role="alertdialog"
+        aria-label="Confirm delete"
+        aria-modal="true"
         className="relative bg-panel border border-edge rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-4"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -121,7 +125,7 @@ function FileContextMenu({
   onStartRename: () => void
 }) {
   const { refresh } = useContext(FileTreeContext)
-  const { closeFile } = useEditorStore()
+  const { removeTab } = useTerminalStore()
   const { confirmDelete } = useSettingsStore()
   const set = useSettingsStore.setState
   const [showConfirm, setShowConfirm] = useState(false)
@@ -146,9 +150,9 @@ function FileContextMenu({
   const doDelete = useCallback(async () => {
     onClose()
     await window.electron.deleteFile(menu.entry.path)
-    if (!menu.entry.isDirectory) closeFile(projectId, menu.entry.path)
+    if (!menu.entry.isDirectory) removeTab(projectId, `file:${menu.entry.path}`)
     refresh()
-  }, [menu.entry, projectId, onClose, closeFile, refresh])
+  }, [menu.entry, projectId, onClose, removeTab, refresh])
 
   const handleDeleteClick = () => {
     if (confirmDelete) {
@@ -239,8 +243,9 @@ interface FileTreeNodeProps {
   ignoredSet: Set<string>
 }
 
-function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignoredSet }: FileTreeNodeProps) {
-  const { openFile } = useEditorStore()
+const FileTreeNode = memo(function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignoredSet }: FileTreeNodeProps) {
+  const { setFileContent } = useEditorStore()
+  const { openFileTab } = useTerminalStore()
   const { refresh } = useContext(FileTreeContext)
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirEntry[] | null>(null)
@@ -270,7 +275,18 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
   const handleClick = async () => {
     if (renaming) return
     if (!entry.isDirectory) {
-      openFile(projectId, entry.path)
+      // Load content into editor store cache if not already loaded
+      const cached = useEditorStore.getState().fileContents
+      if (!(entry.path in cached)) {
+        try {
+          const content = await window.electron.readFile(entry.path)
+          setFileContent(entry.path, content)
+        } catch {
+          setFileContent(entry.path, '')
+        }
+      }
+      // Open as a tab in the terminal panel
+      openFileTab(projectId, entry.path)
       return
     }
     if (!expanded && children === null && !loading) {
@@ -330,7 +346,7 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
     : getFileIcon(entry.name)
 
   return (
-    <div className={opacity}>
+    <div className={opacity} role="treeitem" aria-expanded={entry.isDirectory ? expanded : undefined} aria-label={entry.name}>
       <div
         className={`w-full flex items-center gap-1 py-0.5 rounded hover:bg-accent-10 cursor-pointer ${labelColor}`}
         style={{ paddingLeft: `${8 + depth * 12}px`, paddingRight: '8px', height: '24px' }}
@@ -363,6 +379,7 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
             }}
             onBlur={submitRename}
             onClick={(e) => e.stopPropagation()}
+            aria-label="Rename file"
             className="flex-1 text-xs bg-overlay border border-accent rounded px-1 outline-none min-w-0 selectable"
             style={{ height: 18 }}
           />
@@ -379,6 +396,8 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
             className="shrink-0 w-1.5 h-1.5 rounded-full"
             style={{ backgroundColor: gitIndicator.color }}
             title={gitIndicator.title}
+            role="status"
+            aria-label={gitIndicator.title}
           />
         )}
       </div>
@@ -394,7 +413,7 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
       )}
 
       {entry.isDirectory && expanded && children !== null && (
-        <div>
+        <div role="group">
           {children.length === 0 ? (
             <div
               className="text-xs text-t4 py-0.5"
@@ -419,7 +438,7 @@ function FileTreeNode({ entry, depth, projectId, projectRoot, gitStatus, ignored
       )}
     </div>
   )
-}
+})
 
 function sortEntries(entries: DirEntry[]): DirEntry[] {
   return [...entries].sort((a, b) => {
@@ -467,7 +486,7 @@ export function FileTree({ projectPath, projectId }: FileTreeProps) {
 
   return (
     <FileTreeContext.Provider value={{ refresh }}>
-      <div className="py-1">
+      <div role="tree" aria-label="File tree" className="py-1">
         {rootEntries.map((entry) => (
           <FileTreeNode
             key={entry.path}

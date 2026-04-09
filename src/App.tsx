@@ -1,78 +1,35 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
-import { Sidebar } from './components/sidebar/Sidebar'
+import { useEffect } from 'react'
 import { StartScreen } from './components/start/StartScreen'
 import { QuickStartModal } from './components/start/QuickStartModal'
+import { CloneModal } from './components/start/CloneModal'
 import { TerminalPanel } from './components/terminal/TerminalPanel'
-import { EditorPanel } from './components/editor/EditorPanel'
 import { BrowserPanel } from './components/browser/BrowserPanel'
+import { ProjectsSidebar } from './components/sidebar/ProjectsSidebar'
+import { FileExplorer } from './components/sidebar/FileExplorer'
 import { SettingsNav } from './components/settings/SettingsNav'
 import { SettingsContent } from './components/settings/SettingsContent'
 import { useProjectStore, useActiveProject } from './stores/project-store'
 import { useSettingsStore } from './stores/settings-store'
 import { useBrowserStore } from './stores/browser-store'
 import { useModalStore } from './stores/modal-store'
+import { usePanelResize } from './lib/use-panel-resize'
 import { getPaletteRgb, getPaletteHex } from './lib/palettes'
 
-// Panel widths stored as percentages so they scale correctly when the user zooms
-const SIDEBAR_MIN = 14   // %
-const SIDEBAR_MAX = 35   // %
-const TERMINAL_MIN = 18  // %
-const TERMINAL_MAX = 48  // %
-const TERMINAL_H_MIN = 15 // % (height, horizontal layout)
-const TERMINAL_H_MAX = 60 // %
-
-type ResizeDirection = 'right' | 'left' | 'up' | 'down'
-
-function usePanelResize(initialPct: number, minPct: number, maxPct: number, direction: ResizeDirection) {
-  const [pct, setPct] = useState(initialPct)
-  const dragging = useRef(false)
-  const startPos = useRef(0)
-  const startPct = useRef(0)
-  const isVertical = direction === 'up' || direction === 'down'
-
-  const reset = useCallback(() => setPct(initialPct), [initialPct])
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    dragging.current = true
-    startPos.current = isVertical ? e.clientY : e.clientX
-    startPct.current = pct
-    document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize'
-    document.body.style.userSelect = 'none'
-  }, [pct, isVertical])
-
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) return
-      const deltaPct = isVertical
-        ? ((e.clientY - startPos.current) / window.innerHeight) * 100
-        : ((e.clientX - startPos.current) / window.innerWidth) * 100
-      const next = direction === 'right' || direction === 'down'
-        ? startPct.current + deltaPct
-        : startPct.current - deltaPct
-      setPct(Math.min(maxPct, Math.max(minPct, next)))
-    }
-    const onMouseUp = () => {
-      dragging.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [minPct, maxPct, direction, isVertical])
-
-  return { pct, onMouseDown, reset }
-}
+// Panel size constraints (percentages)
+const PROJECTS_COL_MIN = 10
+const PROJECTS_COL_MAX = 25
+const FILES_COL_MIN = 10
+const FILES_COL_MAX = 30
+const BROWSER_H_MIN = 25   // height, horizontal layout
+const BROWSER_H_MAX = 80
+const BROWSER_V_MIN = 25   // width, vertical layout
+const BROWSER_V_MAX = 70
 
 // Apply color mode class to <html> and set accent CSS variable
 function useTheme() {
   const colorMode = useSettingsStore((s) => s.colorMode)
   const activeProject = useActiveProject()
 
-  // Apply color mode
   useEffect(() => {
     const html = document.documentElement
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -82,13 +39,11 @@ function useTheme() {
         colorMode === 'dark' ||
         (colorMode === 'native' && mq.matches)
 
-      // Animate the transition
       html.classList.add('theme-transition')
       html.classList.toggle('dark', isDark)
       html.classList.toggle('light', !isDark)
       setTimeout(() => html.classList.remove('theme-transition'), 160)
 
-      // Sync macOS window chrome (border, shadow) and backgroundColor with app theme
       const source = colorMode === 'native' ? 'system' : colorMode
       const bgColor = isDark ? '#09090b' : '#fafafa'
       window.electron.setWindowTheme(source, bgColor)
@@ -102,7 +57,6 @@ function useTheme() {
     }
   }, [colorMode])
 
-  // Apply accent from active project palette
   useEffect(() => {
     const hex = activeProject ? getPaletteHex(activeProject.palette) : '#71717a'
     const rgb = activeProject ? getPaletteRgb(activeProject.palette) : '113 113 122'
@@ -111,140 +65,236 @@ function useTheme() {
   }, [activeProject?.palette])
 }
 
+function usePortDetection() {
+  const setDetectedPort = useProjectStore((s) => s.setDetectedPort)
+  const clearDetectedPort = useProjectStore((s) => s.clearDetectedPort)
+
+  useEffect(() => {
+    if (!window.electron.onPortDetected) return
+    const offDetected = window.electron.onPortDetected((projectId, port) => {
+      setDetectedPort(projectId, port)
+    })
+    const offCleared = window.electron.onPortCleared((projectId) => {
+      clearDetectedPort(projectId)
+    })
+    return () => { offDetected(); offCleared() }
+  }, [setDetectedPort, clearDetectedPort])
+}
+
 export default function App() {
   useTheme()
+  usePortDetection()
 
   const { projects } = useProjectStore()
   const { isOpen: isSettingsOpen } = useSettingsStore()
   const activeProject = useActiveProject()
-  const browserVisible = useBrowserStore((s) => s.visible[activeProject?.id ?? ''] ?? true)
   const activeLayout = activeProject?.layout ?? 'vertical'
   const quickStartOpen = useModalStore((s) => s.quickStartOpen)
+  const cloneOpen = useModalStore((s) => s.cloneOpen)
   const hasProjects = projects.length > 0
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const sidebarCollapsed = useProjectStore((s) => s.sidebarCollapsed)
+  const toggleSidebar = useProjectStore((s) => s.toggleSidebar)
+  const isFullscreen = useBrowserStore((s) => s.fullscreen[activeProject?.id ?? ''] ?? false)
 
-  const sidebar = usePanelResize(22, SIDEBAR_MIN, SIDEBAR_MAX, 'right')
-  const terminal = usePanelResize(39, TERMINAL_MIN, TERMINAL_MAX, 'left')
-  const terminalH = usePanelResize(35, TERMINAL_H_MIN, TERMINAL_H_MAX, 'down')
+  // Resize hooks
+  const projectsCol = usePanelResize(16, PROJECTS_COL_MIN, PROJECTS_COL_MAX, 'right')
+  const filesCol = usePanelResize(16, FILES_COL_MIN, FILES_COL_MAX, 'left')
+  const browserH = usePanelResize(60, BROWSER_H_MIN, BROWSER_H_MAX, 'down')   // browser height (horizontal)
+  const browserV = usePanelResize(50, BROWSER_V_MIN, BROWSER_V_MAX, 'left')    // browser width (vertical)
 
   return (
     <div className="flex flex-col h-full bg-base text-t1">
       {quickStartOpen && <QuickStartModal />}
+      {cloneOpen && <CloneModal />}
       <div className="flex flex-1 min-h-0">
         {isSettingsOpen ? (
           <>
-            {/* Settings nav uses the same width as the main sidebar */}
-            <div style={{ width: `${sidebar.pct}%` }} className="shrink-0 h-full">
+            <div style={{ width: `${projectsCol.pct}%` }} className="shrink-0 h-full">
               <SettingsNav />
             </div>
             <SettingsContent />
           </>
+        ) : hasProjects ? (
+          activeLayout === 'horizontal' ? (
+            <HorizontalLayout
+              activeProject={activeProject}
+              sidebarCollapsed={sidebarCollapsed}
+              toggleSidebar={toggleSidebar}
+              isFullscreen={isFullscreen}
+              projectsCol={projectsCol}
+              filesCol={filesCol}
+              browserH={browserH}
+            />
+          ) : (
+            <VerticalLayout
+              activeProject={activeProject}
+              sidebarCollapsed={sidebarCollapsed}
+              toggleSidebar={toggleSidebar}
+              isFullscreen={isFullscreen}
+              projectsCol={projectsCol}
+              browserV={browserV}
+            />
+          )
         ) : (
-          <>
-            {/* Sidebar — always visible */}
-            <div
-              style={sidebarCollapsed ? { width: 0, minWidth: 0, overflow: 'hidden' } : { width: `${sidebar.pct}%` }}
-              className="shrink-0 transition-none"
-            >
-              <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(v => !v)} />
-            </div>
-
-            {/* Sidebar resize handle — 1px line, 7px hit area */}
-            {!sidebarCollapsed && (
-              <div
-                onMouseDown={sidebar.onMouseDown}
-                onDoubleClick={sidebar.reset}
-                className="no-drag shrink-0 cursor-col-resize group flex justify-center z-10"
-                style={{ width: 7, marginLeft: -3, marginRight: -3 }}
-              >
-                <div className="w-px h-full bg-edge group-hover:bg-overlay transition-colors" />
-              </div>
-            )}
-
-            {/* Expand button shown when sidebar is collapsed */}
-            {sidebarCollapsed && (
-              <button
-                onClick={() => setSidebarCollapsed(false)}
-                className="no-drag fixed top-1.5 left-16 z-[100] flex items-center justify-center w-7 h-7 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 rounded transition-colors"
-                title="Show sidebar"
-              >
-                <SidebarIcon />
-              </button>
-            )}
-
-            {hasProjects ? (
-              activeLayout === 'horizontal' ? (
-                /* Horizontal layout — editor/browser on top, terminal on bottom */
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-                  <div className="flex-1 min-h-0 flex flex-col relative">
-                    <div className={browserVisible ? 'hidden' : 'flex flex-col flex-1 min-h-0'}>
-                      <EditorPanel />
-                    </div>
-                    {browserVisible && activeProject && (
-                      <BrowserPanel projectId={activeProject.id} defaultUrl={`http://localhost:${activeProject.port}`} sidebarCollapsed={sidebarCollapsed} />
-                    )}
-                  </div>
-
-                  {/* Horizontal resize handle — 1px line, 7px hit area */}
-                  <div
-                    onMouseDown={terminalH.onMouseDown}
-                    onDoubleClick={terminalH.reset}
-                    className="shrink-0 cursor-row-resize group flex flex-col items-center z-10"
-                    style={{ height: 7, marginTop: -3, marginBottom: -3 }}
-                  >
-                    <div className="h-px w-full bg-edge group-hover:bg-overlay transition-colors" />
-                  </div>
-
-                  {/* Terminal at bottom */}
-                  <div style={{ height: `${terminalH.pct}%` }} className="shrink-0">
-                    <TerminalPanel />
-                  </div>
-                </div>
-              ) : (
-                /* Vertical layout (default) — terminal on the right */
-                <>
-                  {/* Center — editor / browser */}
-                  <div className="flex-1 min-w-0 min-h-0 flex flex-col relative">
-                    <div className={browserVisible ? 'hidden' : 'flex flex-col flex-1 min-h-0'}>
-                      <EditorPanel />
-                    </div>
-                    {browserVisible && activeProject && (
-                      <BrowserPanel projectId={activeProject.id} defaultUrl={`http://localhost:${activeProject.port}`} sidebarCollapsed={sidebarCollapsed} />
-                    )}
-                  </div>
-
-                  {/* Terminal resize handle — 1px line, 7px hit area */}
-                  <div
-                    onMouseDown={terminal.onMouseDown}
-                    onDoubleClick={terminal.reset}
-                    className="shrink-0 cursor-col-resize group flex justify-center z-10"
-                    style={{ width: 7, marginLeft: -3, marginRight: -3 }}
-                  >
-                    <div className="w-px h-full bg-edge group-hover:bg-overlay transition-colors" />
-                  </div>
-
-                  {/* Terminal */}
-                  <div style={{ width: `${terminal.pct}%` }} className="shrink-0">
-                    <TerminalPanel />
-                  </div>
-                </>
-              )
-            ) : (
-              /* No projects — welcome screen fills remaining space */
-              <StartScreen />
-            )}
-          </>
+          <StartScreen />
         )}
       </div>
     </div>
   )
 }
 
-// Inline SVG matching SidebarSimple from Phosphor
-function SidebarIcon() {
+// ── Horizontal layout — browser on top, technical panel on bottom ─────────────
+
+interface HorizontalProps {
+  activeProject: ReturnType<typeof useActiveProject>
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+  isFullscreen: boolean
+  projectsCol: ReturnType<typeof usePanelResize>
+  filesCol: ReturnType<typeof usePanelResize>
+  browserH: ReturnType<typeof usePanelResize>
+}
+
+function HorizontalLayout({ activeProject, sidebarCollapsed, toggleSidebar, isFullscreen, projectsCol, filesCol, browserH }: HorizontalProps) {
   return (
-    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
-      <path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H88V200H40ZM216,200H104V56H216V200Z" />
-    </svg>
+    <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+      {/* Top — Visual panel (browser or canvas) */}
+      <div
+        className="flex flex-col min-h-0"
+        style={isFullscreen ? { flex: 1 } : { height: `${browserH.pct}%` }}
+      >
+        {activeProject && (
+          <BrowserPanel projectId={activeProject.id} defaultUrl={`http://localhost:${activeProject.port}`} layout="horizontal" />
+        )}
+      </div>
+
+      {!isFullscreen && (
+        <>
+          {/* Horizontal resize handle */}
+          <div
+            onMouseDown={browserH.onMouseDown}
+            onDoubleClick={browserH.reset}
+            className="shrink-0 cursor-row-resize group flex flex-col items-center z-10"
+            style={{ height: 7, marginTop: -3, marginBottom: -3 }}
+          >
+            <div className="h-px w-full bg-edge/0 group-hover:bg-edge transition-colors" />
+          </div>
+
+          {/* Bottom — Technical panel (3 columns) */}
+          <div className="flex-1 min-h-0 flex">
+            {/* Projects column */}
+            {!sidebarCollapsed && (
+              <>
+                <div style={{ width: `${projectsCol.pct}%` }} className="shrink-0 h-full">
+                  <ProjectsSidebar />
+                </div>
+                <ResizeHandle direction="col" onMouseDown={projectsCol.onMouseDown} onDoubleClick={projectsCol.reset} />
+              </>
+            )}
+
+            {/* Terminal — takes remaining space */}
+            <div className="flex-1 min-w-0 min-h-0">
+              <TerminalPanel />
+            </div>
+
+            {/* Files column */}
+            {!sidebarCollapsed && (
+              <>
+                <ResizeHandle direction="col" onMouseDown={filesCol.onMouseDown} onDoubleClick={filesCol.reset} />
+                <div style={{ width: `${filesCol.pct}%` }} className="shrink-0 h-full">
+                  <FileExplorer />
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
+
+// ── Vertical layout — technical on left, browser on right ─────────────────────
+
+interface VerticalProps {
+  activeProject: ReturnType<typeof useActiveProject>
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+  isFullscreen: boolean
+  projectsCol: ReturnType<typeof usePanelResize>
+  browserV: ReturnType<typeof usePanelResize>
+}
+
+function VerticalLayout({ activeProject, sidebarCollapsed, toggleSidebar, isFullscreen, projectsCol, browserV }: VerticalProps) {
+  return (
+    <div className="flex-1 min-w-0 min-h-0 flex">
+      {!isFullscreen && (
+        <>
+          {/* Left — Technical panel (sidebar + terminal) */}
+          <div className="flex min-h-0" style={{ width: `${100 - browserV.pct}%` }}>
+            {/* Projects+Files column (stacked) */}
+            {!sidebarCollapsed && (
+              <>
+                <div style={{ width: `${projectsCol.pct}%` }} className="shrink-0 h-full flex flex-col">
+                  {/* Drag region for macOS title bar */}
+                  <div className="drag-region h-10 w-full shrink-0" />
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    <ProjectsSidebar />
+                    <div className="border-t border-edge shrink-0" />
+                    <div className="flex-1 min-h-0">
+                      <FileExplorer />
+                    </div>
+                  </div>
+                </div>
+                <ResizeHandle direction="col" onMouseDown={projectsCol.onMouseDown} onDoubleClick={projectsCol.reset} />
+              </>
+            )}
+
+            {/* Terminal — takes remaining space */}
+            <div className="flex-1 min-w-0 min-h-0">
+              <TerminalPanel />
+            </div>
+          </div>
+
+          {/* Vertical resize handle */}
+          <ResizeHandle direction="col" onMouseDown={browserV.onMouseDown} onDoubleClick={browserV.reset} />
+        </>
+      )}
+
+      {/* Right — Visual panel (browser or canvas) */}
+      <div
+        className="min-h-0 flex flex-col"
+        style={isFullscreen ? { flex: 1 } : { width: `${browserV.pct}%` }}
+      >
+        {activeProject && (
+          <BrowserPanel projectId={activeProject.id} defaultUrl={`http://localhost:${activeProject.port}`} layout="vertical" />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Shared components ─────────────────────────────────────────────────────────
+
+function ResizeHandle({ direction, onMouseDown, onDoubleClick }: {
+  direction: 'col' | 'row'
+  onMouseDown: (e: React.MouseEvent) => void
+  onDoubleClick: () => void
+}) {
+  const isCol = direction === 'col'
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      onDoubleClick={onDoubleClick}
+      className={`no-drag shrink-0 group flex z-10 ${
+        isCol ? 'cursor-col-resize justify-center' : 'cursor-row-resize flex-col items-center'
+      }`}
+      style={isCol
+        ? { width: 7, marginLeft: -3, marginRight: -3 }
+        : { height: 7, marginTop: -3, marginBottom: -3 }
+      }
+    >
+      <div className={`${isCol ? 'w-px h-full' : 'h-px w-full'} bg-edge group-hover:bg-overlay transition-colors`} />
+    </div>
+  )
+}
+

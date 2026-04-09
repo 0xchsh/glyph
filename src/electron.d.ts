@@ -6,6 +6,7 @@ declare global {
       openFolderDialog: () => Promise<string | null>
       addProject: (path: string) => Promise<void>
       removeProject: (id: string) => Promise<void>
+      findFavicon: (projectPath: string) => Promise<string | null>
       readFile: (path: string) => Promise<string>
       writeFile: (path: string, content: string) => Promise<void>
       readDir: (path: string) => Promise<{ name: string; path: string; isDirectory: boolean }[]>
@@ -18,6 +19,7 @@ declare global {
       onFileChanged: (callback: (path: string) => void) => () => void
       gitStatus: (projectPath: string) => Promise<Record<string, string>>
       gitIgnored: (projectPath: string) => Promise<string[]>
+      gitClone: (url: string, dest: string) => Promise<string>
       startDevServer: (projectId: string) => Promise<void>
       stopDevServer: (projectId: string) => Promise<void>
       onDevServerStatus: (callback: (projectId: string, status: string) => void) => () => void
@@ -35,6 +37,11 @@ declare global {
       setWindowTheme: (source: 'light' | 'dark' | 'system', bgColor: string) => Promise<void>
       getHomePath: () => Promise<string>
       mkdir: (path: string) => Promise<void>
+      saveCanvasState: (projectId: string, data: string) => Promise<void>
+      loadCanvasState: (projectId: string) => Promise<string | null>
+      onBrowserConsoleMessage: (callback: (projectId: string, msg: { level: number; message: string; source: string; line: number }) => void) => () => void
+      onPortDetected: (callback: (projectId: string, port: number) => void) => () => void
+      onPortCleared: (callback: (projectId: string) => void) => () => void
     }
   }
 }

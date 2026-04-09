@@ -70,14 +70,9 @@ export function destroyTerminalInstance(terminalId: string): void {
   }
 }
 
-function buildTheme(base: ITheme, accentHex: string, isDark: boolean): ITheme {
-  // Replicate color-mix(in srgb, base 93%, accent 7%) from globals.css --bg-base
-  const [br, bg, bb] = isDark ? [9, 9, 11] : [250, 250, 250]
-  const ar = parseInt(accentHex.slice(1, 3), 16)
-  const ag = parseInt(accentHex.slice(3, 5), 16)
-  const ab = parseInt(accentHex.slice(5, 7), 16)
-  const bg2 = `rgb(${Math.round(br * 0.93 + ar * 0.07)},${Math.round(bg * 0.93 + ag * 0.07)},${Math.round(bb * 0.93 + ab * 0.07)})`
-  return { ...base, background: bg2, cursor: accentHex, cursorAccent: base.background }
+function buildTheme(base: ITheme, accentHex: string): ITheme {
+  // Keep terminal background flat (no accent tint) — only the cursor gets accent color
+  return { ...base, cursor: accentHex, cursorAccent: base.background }
 }
 
 export function TerminalInstance({ terminalId, accentColor, active, isDark }: Props) {
@@ -86,7 +81,7 @@ export function TerminalInstance({ terminalId, accentColor, active, isDark }: Pr
   // Update theme when dark/light mode or accent color changes
   useEffect(() => {
     const inst = openTerminals.get(terminalId)
-    if (inst) inst.term.options.theme = buildTheme(isDark ? DARK_THEME : LIGHT_THEME, accentColor, isDark)
+    if (inst) inst.term.options.theme = buildTheme(isDark ? DARK_THEME : LIGHT_THEME, accentColor)
   }, [isDark, accentColor, terminalId])
 
   useEffect(() => {
@@ -120,7 +115,7 @@ export function TerminalInstance({ terminalId, accentColor, active, isDark }: Pr
           fontSize: 12,
           lineHeight: 1.0,
           letterSpacing: 0,
-          theme: isDark ? DARK_THEME : LIGHT_THEME,
+          theme: buildTheme(isDark ? DARK_THEME : LIGHT_THEME, accentColor),
           cursorStyle: 'block',
           cursorBlink: true,
           allowTransparency: true,
@@ -193,8 +188,7 @@ export function TerminalInstance({ terminalId, accentColor, active, isDark }: Pr
   return (
     <div
       ref={containerRef}
-      className="h-full w-full"
-      style={{ padding: '8px 12px', background: isDark ? '#09090b' : '#fafafa' }}
+      className="h-full w-full terminal-padded"
     />
   )
 }

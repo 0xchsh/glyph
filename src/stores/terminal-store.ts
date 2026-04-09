@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 
 export type TerminalType = 'shell' | 'claude' | 'codex'
+export type PanelTabType = TerminalType | 'file'
 
 export interface TerminalTab {
-  id: string          // terminalId from main process
-  type: TerminalType
+  id: string          // terminalId from main process, or `file:${path}` for file tabs
+  type: PanelTabType
   projectId: string
   title: string
+  filePath?: string   // only for type === 'file'
 }
 
 interface TerminalStore {
@@ -23,6 +25,8 @@ interface TerminalStore {
   setTerminalBusy: (terminalId: string, busy: boolean) => void
   getProjectTabs: (projectId: string) => TerminalTab[]
   getActiveTabId: (projectId: string) => string | null
+  openFileTab: (projectId: string, filePath: string) => void
+  reorderTabs: (projectId: string, fromIndex: number, toIndex: number) => void
 }
 
 export const useTerminalStore = create<TerminalStore>((set, get) => ({
@@ -66,4 +70,33 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   getProjectTabs: (projectId) => get().tabs[projectId] ?? [],
   getActiveTabId: (projectId) => get().activeTabId[projectId] ?? null,
+
+  openFileTab: (projectId, filePath) => {
+    const state = get()
+    const tabs = state.tabs[projectId] ?? []
+    const tabId = `file:${filePath}`
+
+    // Already open — just activate
+    if (tabs.find((t) => t.id === tabId)) {
+      set((s) => ({ activeTabId: { ...s.activeTabId, [projectId]: tabId } }))
+      return
+    }
+
+    const name = filePath.split('/').pop() ?? filePath
+    state.addTab(projectId, {
+      id: tabId,
+      type: 'file',
+      projectId,
+      title: name,
+      filePath,
+    })
+  },
+
+  reorderTabs: (projectId, fromIndex, toIndex) =>
+    set((s) => {
+      const tabs = [...(s.tabs[projectId] ?? [])]
+      const [moved] = tabs.splice(fromIndex, 1)
+      tabs.splice(toIndex, 0, moved)
+      return { tabs: { ...s.tabs, [projectId]: tabs } }
+    }),
 }))

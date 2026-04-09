@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import * as PhosphorIcons from '@phosphor-icons/react'
-import { GlyphProject } from '../../stores/project-store'
+import { GlyphProject, useProjectStore } from '../../stores/project-store'
 import { useTerminalStore } from '../../stores/terminal-store'
 import { getPaletteHex } from '../../lib/palettes'
 import { monogram } from '../../lib/colors'
@@ -17,7 +17,7 @@ function Spinner() {
     return () => clearInterval(id)
   }, [])
   return (
-    <span className="font-mono text-[11px] text-t3 flex-shrink-0 mr-0.5 leading-none">
+    <span className="font-mono text-[11px] text-t2 flex-shrink-0 mr-0.5 leading-none">
       {SPINNER_FRAMES[frame]}
     </span>
   )
@@ -32,9 +32,11 @@ interface Props {
 export function ProjectItem({ project, isActive, onClick }: Props) {
   const mono = monogram(project.name)
   const accent = getPaletteHex(project.palette)
-  const iconName = project.icon && project.icon !== 'auto' ? project.icon : null
+  const isFavicon = project.icon === 'favicon' && project.faviconUrl
+  const iconName = !isFavicon && project.icon && project.icon !== 'auto' ? project.icon : null
   const IconComponent = iconName ? (PhosphorIcons as Record<string, React.ElementType>)[iconName] : null
 
+  const detectedPort = useProjectStore(s => s.detectedPorts[project.id])
   const tabs = useTerminalStore(s => s.tabs[project.id] ?? EMPTY_TABS)
   const anyBusy = useTerminalStore(s => {
     const t = s.tabs[project.id]
@@ -61,7 +63,9 @@ export function ProjectItem({ project, isActive, onClick }: Props) {
             borderColor: `${accent}35`,
           }}
         >
-          {IconComponent ? (
+          {isFavicon ? (
+            <img src={project.faviconUrl!} alt="" className="w-4 h-4 object-contain" />
+          ) : IconComponent ? (
             <IconComponent size={16} weight="regular" style={{ color: accent }} />
           ) : (
             <span
@@ -78,18 +82,20 @@ export function ProjectItem({ project, isActive, onClick }: Props) {
           <div className="text-[13px] font-medium text-t1 truncate leading-tight">
             {project.name}
           </div>
-          <div className="text-[11px] text-t3 leading-tight mt-0.5">
-            localhost:{project.port}
-          </div>
+          {detectedPort && (
+            <div className="text-[11px] text-t3 leading-tight mt-0.5 animate-fade-in">
+              localhost:{detectedPort}
+            </div>
+          )}
         </div>
 
         {/* Status indicator */}
         {anyBusy ? (
           <Spinner />
         ) : hasTerminals ? (
-          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1 bg-green-500" />
+          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1 bg-green-500 animate-pulse-live" role="status" aria-label="Terminal running" />
         ) : isActive ? (
-          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1" style={{ backgroundColor: accent }} />
+          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-1" style={{ backgroundColor: accent }} role="status" aria-label="Active project" />
         ) : null}
       </button>
     </div>

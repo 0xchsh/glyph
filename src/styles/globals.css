@@ -33,6 +33,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Jacquarda Bastarda 9';
+  src: url('../assets/fonts/JacquardaBastarda9-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ── Theme tokens ────────────────────────────────────────────── */
 
 :root, .dark {
@@ -110,6 +118,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: var(--bg-base);
 }
 
 body {
@@ -171,23 +180,100 @@ body {
   background-color: rgba(113, 113, 122, 0.6);
 }
 
+/* ── Animations ────────────────────────────────────────────── */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.animate-fade-up {
+  animation: fade-up 400ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 250ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.animate-pulse-live {
+  animation: pulse-live 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-scale-in,
+  .animate-fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-pulse-live {
+    animation: none;
+  }
+}
+
+/* ── Sidebar collapse transition ────────────────────────────── */
+
+.transition-sidebar {
+  transition: width 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transition-sidebar {
+    transition: none;
+  }
+}
+
+/* ── xterm.js terminal padding ──────────────────────────────── */
+
+/* Internal padding so the terminal background (accent-tinted) fills the gap */
+.terminal-padded .xterm {
+  padding: 0 0 8px 12px;
+}
+
 /* ── xterm.js terminal scrollbar ────────────────────────────── */
 
-/* Use auto so macOS renders a thin overlay scrollbar (appears on scroll, hides when idle) */
+/* Scrollbar fades in on hover, hidden when idle */
 .xterm .xterm-viewport {
   overflow-y: auto !important;
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  background-color: rgba(113, 113, 122, 0.4);
-  border-radius: 3px;
+  background-color: rgba(113, 113, 122, 0);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+.xterm:hover .xterm-viewport::-webkit-scrollbar-thumb {
+  background-color: rgba(113, 113, 122, 0.4);
+}
+
+.xterm:hover .xterm-viewport::-webkit-scrollbar-thumb:hover {
   background-color: rgba(113, 113, 122, 0.65);
 }
 

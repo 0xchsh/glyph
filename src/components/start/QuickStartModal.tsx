@@ -72,10 +72,10 @@ export function QuickStartModal() {
       onMouseDown={(e) => { if (e.target === e.currentTarget) closeQuickStart() }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" />
 
       {/* Modal */}
-      <div className="relative bg-panel border border-edge rounded-xl shadow-2xl w-[480px] flex flex-col gap-5 p-6">
+      <div role="dialog" aria-label="Quick start" aria-modal="true" className="relative bg-panel border border-edge rounded-xl shadow-2xl w-[480px] flex flex-col gap-5 p-6 animate-scale-in">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -84,6 +84,7 @@ export function QuickStartModal() {
           </div>
           <button
             onClick={closeQuickStart}
+            aria-label="Close"
             className="no-drag text-t3 hover:text-t1 p-1 rounded hover:bg-overlay transition-colors"
           >
             <X size={14} />
@@ -126,10 +127,12 @@ export function QuickStartModal() {
         {/* Template */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-t2">Template</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div role="radiogroup" aria-label="Project template" className="grid grid-cols-2 gap-2">
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
+                role="radio"
+                aria-checked={template === t.id}
                 onClick={() => setTemplate(t.id)}
                 className={`no-drag flex flex-col items-center gap-2.5 p-4 rounded-lg border transition-all text-center ${
                   template === t.id

@@ -11,30 +11,29 @@ export function StartScreen() {
 
       <div className="flex-1 flex flex-col items-center justify-center gap-12">
         {/* Wordmark */}
-        <h1 className="text-5xl font-normal text-t1" style={{ fontFamily: "'Open Runde', sans-serif" }}>
+        <h1
+          className="text-6xl font-normal text-t1 animate-fade-up"
+          style={{ fontFamily: "'Jacquarda Bastarda 9', serif" }}
+        >
           glyph
         </h1>
 
         {/* Action cards */}
         <div className="flex gap-4">
-          <ActionCard
-            icon={<FolderOpen size={32} weight="light" />}
-            title="Open project"
-            description="Browse for an existing folder"
-            onClick={openFolder}
-          />
-          <ActionCard
-            icon={<Globe size={32} weight="light" />}
-            title="Clone from URL"
-            description="Paste a Git URL to clone"
-            onClick={cloneFromUrl}
-          />
-          <ActionCard
-            icon={<Lightning size={32} weight="light" />}
-            title="Quick start"
-            description="Scaffold a new project"
-            onClick={quickStart}
-          />
+          {[
+            { icon: <FolderOpen size={20} />, title: 'Open project', description: 'Choose an existing folder', action: openFolder },
+            { icon: <Globe size={20} />, title: 'Clone from URL', description: 'Paste a Git URL to clone', action: cloneFromUrl },
+            { icon: <Lightning size={20} />, title: 'Quick start', description: 'Scaffold a new project', action: quickStart },
+          ].map((card, i) => (
+            <ActionCard
+              key={card.title}
+              icon={card.icon}
+              title={card.title}
+              description={card.description}
+              onClick={card.action}
+              delay={80 + i * 60}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -46,26 +45,31 @@ function ActionCard({
   title,
   description,
   onClick,
+  delay = 0,
 }: {
   icon: React.ReactNode
   title: string
   description: string
   onClick: () => void
+  delay?: number
 }) {
   return (
     <button
       onClick={onClick}
       className="
-        flex flex-col items-center gap-3 p-7 w-44
+        animate-fade-up
+        flex flex-col justify-between p-4 w-44 h-32
         rounded-lg border border-edge bg-panel
         text-t2 hover:text-t1 hover:border-edge-60 hover:bg-overlay-60
+        hover:-translate-y-0.5
         transition-all duration-150 cursor-pointer
       "
+      style={{ animationDelay: `${delay}ms` }}
     >
       <div className="text-t3">{icon}</div>
-      <div className="text-center">
+      <div className="text-left">
         <div className="text-[13px] font-medium text-t1">{title}</div>
-        <div className="text-[12px] text-t3 mt-0.5">{description}</div>
+        <div className="text-[11px] text-t3 mt-0.5">{description}</div>
       </div>
     </button>
   )

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   Check,
   Code, Terminal, Globe, Folder, GitBranch, Database, Cloud, Lightning,
@@ -12,6 +12,7 @@ import {
 import { useSettingsStore, ColorMode } from '../../stores/settings-store'
 import { useProjectStore, useActiveProject, ProjectLayout } from '../../stores/project-store'
 import { PALETTES, PALETTE_KEYS, PaletteKey, getPaletteHex } from '../../lib/palettes'
+import { monogram } from '../../lib/colors'
 
 // ── Icon picker ───────────────────────────────────────────────────────────────
 
@@ -76,15 +77,24 @@ const ICON_LIST: IconEntry[] = [
 
 function IconPicker({
   value,
-  onChange,
+  faviconUrl,
+  onSelect,
   accent,
+  projectPath,
+  projectName,
 }: {
   value: string
-  onChange: (name: string) => void
+  faviconUrl: string | null
+  onSelect: (icon: string, faviconUrl: string | null) => void
   accent: string
+  projectPath: string
+  projectName: string
 }) {
   const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<'icons' | 'favicon'>('icons')
   const [query, setQuery] = useState('')
+  const [detectedFavicon, setDetectedFavicon] = useState<string | null>(null)
+  const [probing, setProbing] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -98,75 +108,158 @@ function IconPicker({
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
-  const filtered = query.trim()
-    ? ICON_LIST.filter(
-        (e) =>
-          e.name.toLowerCase().includes(query.toLowerCase()) ||
-          e.keywords.includes(query.toLowerCase())
-      )
-    : ICON_LIST
+  // Probe for favicon when tab is shown
+  useEffect(() => {
+    if (tab !== 'favicon' || !open) return
+    setProbing(true)
+    window.electron.findFavicon(projectPath).then((result) => {
+      setDetectedFavicon(result)
+      setProbing(false)
+    })
+  }, [tab, open, projectPath])
 
-  const selected = ICON_LIST.find((e) => e.name === value)
-  const SelectedIcon = selected?.component
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return ICON_LIST
+    return ICON_LIST.filter(
+      (e) => e.name.toLowerCase().includes(q) || e.keywords.includes(q)
+    )
+  }, [query])
+
+  // Resolve what the trigger button shows
+  const isFavicon = value === 'favicon' && faviconUrl
+  const iconName = !isFavicon && value !== 'auto' && value !== 'favicon' ? value : null
+  const SelectedIcon = iconName ? ICON_LIST.find((e) => e.name === iconName)?.component : null
+  const mono = monogram(projectName)
 
   return (
-    <div className="relative" ref={popoverRef}>
+    <div className="relative shrink-0" ref={popoverRef}>
+      {/* Trigger — large icon button */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-overlay rounded text-sm text-t1 hover:bg-overlay-80 transition-colors"
-        style={{ color: value !== 'auto' ? accent : undefined }}
+        onClick={() => { setOpen((v) => !v); setQuery('') }}
+        className="w-11 h-11 rounded-xl flex items-center justify-center border transition-colors hover:brightness-125"
+        style={{
+          backgroundColor: `${accent}18`,
+          borderColor: `${accent}35`,
+        }}
       >
-        {SelectedIcon ? (
-          <SelectedIcon size={16} weight="regular" />
+        {isFavicon ? (
+          <img src={faviconUrl!} alt="" className="w-5 h-5 object-contain" />
+        ) : SelectedIcon ? (
+          <SelectedIcon size={20} weight="regular" style={{ color: accent }} />
         ) : (
-          <span className="text-t3 text-xs">Auto</span>
+          <span className="text-sm font-bold font-mono leading-none" style={{ color: accent }}>
+            {mono}
+          </span>
         )}
-        <span className="text-t2 text-xs">{value !== 'auto' ? value : 'Auto (monogram)'}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-panel border border-edge rounded-xl shadow-2xl w-72 overflow-hidden">
-          <div className="p-2 border-b border-edge">
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search icons…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-overlay text-t1 text-xs rounded px-2.5 py-1.5 outline-none placeholder:text-t4"
-            />
+        <div className="absolute left-0 top-full mt-1.5 z-50 bg-panel border border-edge rounded-xl shadow-2xl w-72 overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b border-edge">
+            <button
+              onClick={() => setTab('icons')}
+              className={`flex-1 text-xs py-2.5 font-medium transition-colors ${
+                tab === 'icons' ? 'text-t1 shadow-[inset_0_-1px_0_var(--text-t1)]' : 'text-t3 hover:text-t2'
+              }`}
+            >
+              Icons
+            </button>
+            <button
+              onClick={() => setTab('favicon')}
+              className={`flex-1 text-xs py-2.5 font-medium transition-colors ${
+                tab === 'favicon' ? 'text-t1 shadow-[inset_0_-1px_0_var(--text-t1)]' : 'text-t3 hover:text-t2'
+              }`}
+            >
+              Favicon
+            </button>
           </div>
-          <div className="grid grid-cols-9 gap-0.5 p-2 max-h-56 overflow-y-auto">
-            {/* Auto / monogram option */}
-            {!query && (
-              <button
-                onClick={() => { onChange('auto'); setOpen(false) }}
-                title="Auto (monogram)"
-                className={`flex items-center justify-center w-full aspect-square rounded text-[10px] font-bold transition-colors ${
-                  value === 'auto' ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
-                }`}
-              >
-                Ab
-              </button>
-            )}
-            {filtered.map((entry) => {
-              const Icon = entry.component
-              const isActive = value === entry.name
-              return (
-                <button
-                  key={entry.name}
-                  onClick={() => { onChange(entry.name); setOpen(false) }}
-                  title={entry.name}
-                  className={`flex items-center justify-center w-full aspect-square rounded transition-colors ${
-                    isActive ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
-                  }`}
-                  style={isActive ? { color: accent } : undefined}
-                >
-                  <Icon size={15} weight="regular" />
-                </button>
-              )
-            })}
-          </div>
+
+          {tab === 'icons' && (
+            <>
+              <div className="p-2 border-b border-edge">
+                <div className="relative">
+                  <MagnifyingGlass size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-t4" />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search icons…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full bg-overlay text-t1 text-xs rounded px-2.5 py-1.5 pl-7 outline-none placeholder:text-t4"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-9 gap-0.5 p-2 max-h-56 overflow-y-auto">
+                {!query && (
+                  <button
+                    onClick={() => { onSelect('auto', null); setOpen(false) }}
+                    title="Auto (monogram)"
+                    className={`flex items-center justify-center w-full aspect-square rounded text-[10px] font-bold transition-colors ${
+                      value === 'auto' ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
+                    }`}
+                  >
+                    Ab
+                  </button>
+                )}
+                {filtered.map((entry) => {
+                  const Icon = entry.component
+                  const isActive = value === entry.name
+                  return (
+                    <button
+                      key={entry.name}
+                      onClick={() => { onSelect(entry.name, null); setOpen(false) }}
+                      title={entry.name}
+                      className={`flex items-center justify-center w-full aspect-square rounded transition-colors ${
+                        isActive ? 'bg-overlay text-t1' : 'text-t3 hover:bg-overlay hover:text-t1'
+                      }`}
+                      style={isActive ? { color: accent } : undefined}
+                    >
+                      <Icon size={15} weight="regular" />
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {tab === 'favicon' && (
+            <div className="p-4 flex flex-col items-center gap-3 min-h-[120px] justify-center">
+              {probing ? (
+                <p className="text-xs text-t3">Searching for favicon…</p>
+              ) : detectedFavicon ? (
+                <>
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center border"
+                    style={{ backgroundColor: `${accent}18`, borderColor: `${accent}35` }}
+                  >
+                    <img src={detectedFavicon} alt="Favicon" className="w-8 h-8 object-contain" />
+                  </div>
+                  <p className="text-xs text-t2">Favicon found in your project</p>
+                  <button
+                    onClick={() => { onSelect('favicon', detectedFavicon); setOpen(false) }}
+                    className="text-xs font-medium px-3 py-1.5 rounded transition-colors text-t1 hover:brightness-125"
+                    style={{ backgroundColor: `${accent}30` }}
+                  >
+                    Use this favicon
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-lg bg-overlay flex items-center justify-center">
+                    <span className="text-sm font-bold font-mono text-t3">{monogram(projectName)}</span>
+                  </div>
+                  <p className="text-xs text-t2">No favicon detected</p>
+                  <p className="text-[11px] text-t4 text-center leading-relaxed max-w-[220px]">
+                    Glyph looks for favicons in your repo at common paths like{' '}
+                    <span className="text-t3">public/favicon.svg</span>,{' '}
+                    <span className="text-t3">app/favicon.ico</span>, and similar locations.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -450,20 +543,25 @@ function AppearanceSection() {
 }
 
 function ProjectSection({ projectId }: { projectId: string }) {
-  const { projects, removeProject, setProjectIcon } = useProjectStore()
+  const { projects, removeProject, updateProject } = useProjectStore()
   const { closeSettings } = useSettingsStore()
   const project = projects.find((p) => p.id === projectId)
 
-  const [name, setName] = useState(project?.name ?? '')
   const [devCommand, setDevCommand] = useState(project?.devCommand ?? '')
 
   if (!project) {
     return <p className="text-sm text-t3">Project not found.</p>
   }
 
+  const accent = getPaletteHex(project.palette)
+
   const handleRemove = () => {
     removeProject(projectId)
     closeSettings()
+  }
+
+  const handleIconSelect = (icon: string, faviconUrl: string | null) => {
+    updateProject(projectId, { icon, faviconUrl })
   }
 
   const setPalette = (palette: PaletteKey) => {
@@ -476,33 +574,26 @@ function ProjectSection({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex flex-col gap-0">
-      {/* Name */}
-      <div className="flex items-center justify-between py-4 border-b border-edge-60">
-        <div>
-          <div className="text-xs font-medium text-t2">Name</div>
-          <div className="text-xs text-t4 mt-0.5">Display name for this project</div>
-        </div>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="selectable appearance-none bg-overlay text-t1 text-sm rounded px-3 py-1.5 outline-none focus:ring-1 focus:ring-edge w-48"
+      {/* Header: Icon + Name */}
+      <div className="flex items-center gap-4 pb-6 mb-2 border-b border-edge-60">
+        <IconPicker
+          value={project.icon ?? 'auto'}
+          faviconUrl={project.faviconUrl}
+          onSelect={handleIconSelect}
+          accent={accent}
+          projectPath={project.path}
+          projectName={project.name}
         />
+        <span className="text-t1 text-lg font-semibold truncate">{project.name}</span>
       </div>
 
-      {/* Path */}
+      {/* Folder path */}
       <div className="flex items-center justify-between py-4 border-b border-edge-60">
         <div>
-          <div className="text-xs font-medium text-t2">Path</div>
-          <div className="text-xs text-t4 mt-0.5">Folder on disk</div>
+          <div className="text-xs font-medium text-t2">Folder</div>
+          <div className="text-xs text-t4 mt-0.5">Project location on disk</div>
         </div>
-        <input
-          type="text"
-          value={project.path}
-          disabled
-          className="selectable appearance-none bg-overlay text-t3 text-xs rounded px-3 py-1.5 outline-none w-48 truncate opacity-60 cursor-default"
-          title={project.path}
-        />
+        <span className="text-sm text-t2 truncate max-w-[60%]" title={project.path}>{project.path}</span>
       </div>
 
       {/* Dev command */}
@@ -515,6 +606,7 @@ function ProjectSection({ projectId }: { projectId: string }) {
           type="text"
           value={devCommand}
           onChange={(e) => setDevCommand(e.target.value)}
+          onBlur={() => updateProject(projectId, { devCommand: devCommand.trim() || null })}
           placeholder="e.g. pnpm dev"
           className="selectable appearance-none bg-overlay text-t1 text-sm rounded px-3 py-1.5 outline-none focus:ring-1 focus:ring-edge w-48 placeholder:text-t4"
         />
@@ -557,19 +649,6 @@ function ProjectSection({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      {/* Icon */}
-      <div className="flex items-center justify-between py-4 border-b border-edge-60">
-        <div>
-          <div className="text-xs font-medium text-t2">Icon</div>
-          <div className="text-xs text-t4 mt-0.5">Icon shown in the sidebar</div>
-        </div>
-        <IconPicker
-          value={project.icon ?? 'auto'}
-          onChange={(icon) => setProjectIcon(projectId, icon)}
-          accent={getPaletteHex(project.palette)}
-        />
-      </div>
-
       {/* Remove */}
       <div className="pt-8">
         <button
@@ -602,9 +681,11 @@ export function SettingsContent() {
     <div className="flex-1 bg-panel h-full overflow-y-auto min-w-0 flex flex-col">
       <div className="drag-region h-10 shrink-0" />
       <div className="px-12 pb-10 w-full max-w-3xl mx-auto">
-        <h1 className="text-xl font-semibold text-t1 mb-8">
-          {SECTION_TITLES[activeSection]}
-        </h1>
+        {activeSection !== 'project' && (
+          <h1 className="text-xl font-semibold text-t1 mb-8">
+            {SECTION_TITLES[activeSection]}
+          </h1>
+        )}
 
         {activeSection === 'general' && <GeneralSection />}
         {activeSection === 'terminal' && <TerminalSection />}

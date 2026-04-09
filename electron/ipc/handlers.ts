@@ -16,10 +16,11 @@ const CHANNELS = [
   'dialog:openFolder', 'file:read', 'file:write', 'file:readDir',
   'file:rename', 'file:delete',
   'terminal:create', 'terminal:write', 'terminal:resize', 'terminal:kill',
-  'project:remove', 'git:status', 'git:ignored',
+  'project:remove', 'project:findFavicon', 'git:status', 'git:ignored', 'git:clone',
   'browser:show', 'browser:hide', 'browser:setBounds',
   'browser:navigate', 'browser:back', 'browser:forward', 'browser:reload',
   'window:setTheme', 'app:getHomePath', 'fs:mkdir',
+  'canvas:save', 'canvas:load',
 ]
 
 export function registerIpcHandlers(win: BrowserWindow): void {
@@ -93,6 +94,29 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     destroyProjectPtys(projectId)
   })
 
+  // Favicon detection — probe common paths in the project directory
+  const FAVICON_CANDIDATES = [
+    'public/favicon.ico', 'public/favicon.png', 'public/favicon.svg',
+    'app/favicon.ico', 'app/favicon.png', 'src/favicon.ico', 'favicon.ico',
+  ]
+  const FAVICON_MIME: Record<string, string> = {
+    ico: 'image/x-icon', png: 'image/png', svg: 'image/svg+xml',
+    webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  }
+  ipcMain.handle('project:findFavicon', async (_, { projectPath }: { projectPath: string }) => {
+    for (const rel of FAVICON_CANDIDATES) {
+      try {
+        const buf = await readFile(join(projectPath, rel))
+        const ext = rel.split('.').pop() ?? 'ico'
+        const mime = FAVICON_MIME[ext] ?? 'image/x-icon'
+        return `data:${mime};base64,${buf.toString('base64')}`
+      } catch {
+        continue
+      }
+    }
+    return null
+  })
+
   // Git
   ipcMain.handle('git:status', async (_, { projectPath }: { projectPath: string }) => {
     try {
@@ -122,6 +146,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     } catch {
       return []
     }
+  })
+
+  // Git clone
+  ipcMain.handle('git:clone', async (_, { url, dest }: { url: string; dest: string }) => {
+    await execAsync(`git clone ${JSON.stringify(url)} ${JSON.stringify(dest)}`, { timeout: 120_000 })
+    return dest
   })
 
   // Browser
@@ -160,6 +190,21 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   })
 
   ipcMain.handle('app:getHomePath', () => app.getPath('home'))
+
+  // Canvas persistence
+  const canvasDir = join(app.getPath('home'), '.glyph', 'canvas')
+  ipcMain.handle('canvas:save', async (_, { projectId, data }: { projectId: string; data: string }) => {
+    await mkdir(canvasDir, { recursive: true })
+    await writeFile(join(canvasDir, `${projectId}.json`), data, 'utf8')
+  })
+
+  ipcMain.handle('canvas:load', async (_, { projectId }: { projectId: string }) => {
+    try {
+      return await readFile(join(canvasDir, `${projectId}.json`), 'utf8')
+    } catch {
+      return null
+    }
+  })
 
   ipcMain.handle('fs:mkdir', async (_, { path }: { path: string }) => {
     await mkdir(path, { recursive: true })

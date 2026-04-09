@@ -8,6 +8,10 @@ interface PtyInstance {
 }
 
 const instances = new Map<string, PtyInstance>()
+const detectedPorts = new Map<string, number>()
+
+const ANSI_RE = /\x1b\[[0-9;]*[a-zA-Z]/g
+const PORT_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):(\d+)/
 
 function getShell(): string {
   return process.env['SHELL'] ?? (process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh')
@@ -63,6 +67,17 @@ export function createPty(
   instance.onData((data) => {
     if (!win.isDestroyed()) {
       win.webContents.send('terminal:data', terminalId, data)
+
+      // Detect port from dev server output (e.g. "http://localhost:3000")
+      const clean = data.replace(ANSI_RE, '')
+      const match = clean.match(PORT_RE)
+      if (match) {
+        const port = parseInt(match[1], 10)
+        if (port !== detectedPorts.get(projectId)) {
+          detectedPorts.set(projectId, port)
+          win.webContents.send('port:detected', projectId, port)
+        }
+      }
     }
   })
 
@@ -70,6 +85,13 @@ export function createPty(
     instances.delete(terminalId)
     if (!win.isDestroyed()) {
       win.webContents.send('terminal:exit', terminalId)
+
+      // Clear detected port when no terminals remain for this project
+      const hasRemaining = [...instances.values()].some(i => i.projectId === projectId)
+      if (!hasRemaining) {
+        detectedPorts.delete(projectId)
+        win.webContents.send('port:cleared', projectId)
+      }
     }
   })
 

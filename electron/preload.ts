@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.off('file:changed', handler)
   },
 
+  // Favicon
+  findFavicon: (projectPath: string) => ipcRenderer.invoke('project:findFavicon', { projectPath }),
+
   // Dev server
   startDevServer: (projectId: string) => ipcRenderer.invoke('devserver:start', { projectId }),
   stopDevServer: (projectId: string) => ipcRenderer.invoke('devserver:stop', { projectId }),
@@ -48,6 +51,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Git
   gitStatus: (projectPath: string) => ipcRenderer.invoke('git:status', { projectPath }),
   gitIgnored: (projectPath: string) => ipcRenderer.invoke('git:ignored', { projectPath }),
+  gitClone: (url: string, dest: string) => ipcRenderer.invoke('git:clone', { url, dest }),
 
   // Browser
   showBrowser: (projectId: string, url: string, bounds: { x: number; y: number; width: number; height: number }) =>
@@ -71,6 +75,32 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('window:setTheme', { source, bgColor }),
   getHomePath: () => ipcRenderer.invoke('app:getHomePath'),
   mkdir: (path: string) => ipcRenderer.invoke('fs:mkdir', { path }),
+
+  // Canvas persistence
+  saveCanvasState: (projectId: string, data: string) =>
+    ipcRenderer.invoke('canvas:save', { projectId, data }),
+  loadCanvasState: (projectId: string) =>
+    ipcRenderer.invoke('canvas:load', { projectId }),
+
+  // Browser console messages
+  onBrowserConsoleMessage: (callback: (projectId: string, msg: { level: number; message: string; source: string; line: number }) => void) => {
+    const handler = (_: unknown, projectId: string, msg: { level: number; message: string; source: string; line: number }) =>
+      callback(projectId, msg)
+    ipcRenderer.on('browser:console-message', handler)
+    return () => ipcRenderer.off('browser:console-message', handler)
+  },
+
+  // Port detection
+  onPortDetected: (callback: (projectId: string, port: number) => void) => {
+    const handler = (_: unknown, projectId: string, port: number) => callback(projectId, port)
+    ipcRenderer.on('port:detected', handler)
+    return () => ipcRenderer.off('port:detected', handler)
+  },
+  onPortCleared: (callback: (projectId: string) => void) => {
+    const handler = (_: unknown, projectId: string) => callback(projectId)
+    ipcRenderer.on('port:cleared', handler)
+    return () => ipcRenderer.off('port:cleared', handler)
+  },
 
   // Shell / file ops
   revealInFinder: (path: string) => shell.showItemInFolder(path),

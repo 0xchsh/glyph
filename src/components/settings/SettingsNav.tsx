@@ -1,4 +1,5 @@
 import { ArrowLeft, Sliders, Terminal, Code, PaintBrush } from '@phosphor-icons/react'
+import * as PhosphorIcons from '@phosphor-icons/react'
 import { useSettingsStore, SettingsSection } from '../../stores/settings-store'
 import { useProjectStore } from '../../stores/project-store'
 import { getPaletteHex } from '../../lib/palettes'
@@ -16,6 +17,26 @@ const NAV_ITEMS: NavItem[] = [
   { section: 'editor',     label: 'Editor',     icon: <Code size={14} /> },
   { section: 'appearance', label: 'Appearance', icon: <PaintBrush size={14} /> },
 ]
+
+function ProjectIcon({ project, accent }: { project: { name: string; icon?: string | null; faviconUrl?: string | null }; accent: string }) {
+  const isFavicon = project.icon === 'favicon' && project.faviconUrl
+  const iconName = !isFavicon && project.icon && project.icon !== 'auto' ? project.icon : null
+  const IconComponent = iconName ? (PhosphorIcons as Record<string, React.ElementType>)[iconName] : null
+
+  return (
+    <span className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0">
+      {isFavicon ? (
+        <img src={project.faviconUrl!} alt="" className="w-3.5 h-3.5 object-contain" />
+      ) : IconComponent ? (
+        <IconComponent size={14} weight="regular" style={{ color: accent }} />
+      ) : (
+        <span className="text-[9px] font-bold font-mono" style={{ color: accent }}>
+          {monogram(project.name)}
+        </span>
+      )}
+    </span>
+  )
+}
 
 export function SettingsNav() {
   const { activeSection, activeProjectSettingsId, closeSettings, setSection, openProjectSettings } = useSettingsStore()
@@ -85,12 +106,7 @@ export function SettingsNav() {
                       : 'text-t2 hover:text-t1 hover:bg-overlay-50'
                   }`}
                 >
-                  <span
-                    className="w-3.5 h-3.5 rounded flex items-center justify-center text-[9px] font-bold font-mono flex-shrink-0"
-                    style={{ color: accent }}
-                  >
-                    {monogram(project.name)}
-                  </span>
+                  <ProjectIcon project={project} accent={accent} />
                   <span className="truncate">{project.name}</span>
                 </button>
               )

@@ -11,7 +11,7 @@ function createWindow(): void {
     height: 900,
     minWidth: 900,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
     trafficLightPosition: { x: 16, y: 16 },
     backgroundColor: '#09090b', // zinc-950
     webPreferences: {

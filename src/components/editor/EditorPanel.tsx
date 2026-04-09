@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import * as monaco from 'monaco-editor'
 import { X } from '@phosphor-icons/react'
 import { useEditorStore } from '../../stores/editor-store'
@@ -6,23 +6,24 @@ import { useActiveProject } from '../../stores/project-store'
 
 const EMPTY_FILES: string[] = []
 
+const LANG_MAP: Record<string, string> = {
+  ts: 'typescript', tsx: 'typescript',
+  js: 'javascript', jsx: 'javascript',
+  json: 'json', jsonc: 'json',
+  css: 'css', scss: 'scss', less: 'less',
+  html: 'html', htm: 'html',
+  md: 'markdown', mdx: 'markdown',
+  py: 'python', rb: 'ruby', go: 'go',
+  rs: 'rust', java: 'java', cpp: 'cpp', c: 'c',
+  sh: 'shell', bash: 'shell', zsh: 'shell',
+  yaml: 'yaml', yml: 'yaml', toml: 'toml',
+  xml: 'xml', sql: 'sql', graphql: 'graphql',
+  swift: 'swift', kt: 'kotlin',
+}
+
 function getLanguage(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase() ?? ''
-  const map: Record<string, string> = {
-    ts: 'typescript', tsx: 'typescript',
-    js: 'javascript', jsx: 'javascript',
-    json: 'json', jsonc: 'json',
-    css: 'css', scss: 'scss', less: 'less',
-    html: 'html', htm: 'html',
-    md: 'markdown', mdx: 'markdown',
-    py: 'python', rb: 'ruby', go: 'go',
-    rs: 'rust', java: 'java', cpp: 'cpp', c: 'c',
-    sh: 'shell', bash: 'shell', zsh: 'shell',
-    yaml: 'yaml', yml: 'yaml', toml: 'toml',
-    xml: 'xml', sql: 'sql', graphql: 'graphql',
-    swift: 'swift', kt: 'kotlin',
-  }
-  return map[ext] ?? 'plaintext'
+  return LANG_MAP[ext] ?? 'plaintext'
 }
 
 function getModelUri(path: string): monaco.Uri {
@@ -43,6 +44,7 @@ export function EditorPanel() {
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const changeListenerRef = useRef<monaco.IDisposable | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const projectId = project?.id ?? ''
   const openFiles = useEditorStore((s) => s.openFiles[projectId] ?? EMPTY_FILES)
@@ -124,7 +126,10 @@ export function EditorPanel() {
 
     changeListenerRef.current?.dispose()
     changeListenerRef.current = model.onDidChangeContent(() => {
-      setFileContent(activeFile, model.getValue())
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        setFileContent(activeFile, model.getValue())
+      }, 300)
     })
   }, [activeFile, fileContents, setFileContent])
 
@@ -143,13 +148,16 @@ export function EditorPanel() {
 
       {/* Tab bar — relative + z-20 so it sits above the empty state overlay */}
       <div className="relative z-20 flex items-stretch bg-base border-b border-edge shrink-0 h-10">
-        <div className="flex items-center overflow-x-auto flex-1 scrollbar-none">
+        <div role="tablist" aria-label="Open files" className="flex items-center overflow-x-auto flex-1 scrollbar-none">
           {openFiles.map((path, index) => {
             const name = path.split('/').pop() ?? path
             const isActive = path === activeFile
             return (
               <div
                 key={path}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
                 draggable
                 onClick={() => setActiveFile(projectId, path)}
                 onDragStart={() => { dragIndexRef.current = index }}
@@ -177,6 +185,7 @@ export function EditorPanel() {
                     e.stopPropagation()
                     closeFile(projectId, path)
                   }}
+                  aria-label={`Close ${name}`}
                   className="opacity-0 group-hover:opacity-100 hover:text-t1 transition-opacity ml-0.5"
                 >
                   <X size={10} />

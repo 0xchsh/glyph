@@ -62,6 +62,18 @@ function ensureListeners(projectId: string, win: BrowserWindow): void {
   wc.on('did-stop-loading', send)
   wc.on('page-title-updated', send)
 
+  // Forward console messages to renderer
+  wc.on('console-message', (_event, level, message, line, sourceId) => {
+    if (win.isDestroyed()) return
+    win.webContents.send('browser:console-message', projectId, { level, message, source: sourceId, line })
+  })
+
+  // Redirect new window requests (target="_blank" etc.) to the same view
+  wc.setWindowOpenHandler(({ url }) => {
+    wc.loadURL(url)
+    return { action: 'deny' }
+  })
+
   // Retry on connection refused (dev server not up yet)
   wc.on('did-fail-load', (_e, errorCode, _desc, validatedURL) => {
     if (errorCode === -102 && validatedURL && !win.isDestroyed()) {
